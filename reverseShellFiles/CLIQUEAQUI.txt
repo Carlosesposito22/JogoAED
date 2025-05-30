@@ -12,11 +12,11 @@ Essa é uma explicação de como executar o Shell Reverso para concluir o proces
 
 6. Em /Desktop, digite o comando 'enviar malware'.
 
-7. Ao digitar esse comando, o outro computador será infectado com um arquivo batch.
+7. Ao digitar esse comando, o outro computador será infectado com um arquivo .bat com o nome que você escolheu.
 
-8. Para executar esse arquivo na máquina remota, digite start 'nome_do_arquivo.bat'.
+8. Para executar esse arquivo na máquina remota, digite no seu computador "start nome_do_arquivo.bat".
 
-9. Após isso, o arquivo retornará um arquivo de texto com os dados que ele encontrou do CEO.
+9. Após isso, o vírus caçará um arquivo de texto com os dados que ele encontrou do CEO.
 
 10. Use esses dados para completar a fase.
 
