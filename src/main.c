@@ -146,6 +146,9 @@ int main(void)
                 menu_Initialized = true;
                 ResumeMusicStream(music);
             }
+            if (IsKeyPressed(KEY_P)) {
+                state = APP_DESAFIO_03;
+            }
             UpdateMenu();
             DrawMenu();
             if (MenuShowRanking())
