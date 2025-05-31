@@ -7,7 +7,7 @@
 
 #pragma comment(lib, "ws2_32")
 
-#define SERVER_IP "127.0.0.1"  // Altere para o IP do servidor
+#define SERVER_IP "172.26.115.48"  // Altere para o IP do servidor
 #define PORT 8081
 #define BUFFER_SIZE 4096
 #define MAX_RETRIES 5          // Tentativas de reconexão
