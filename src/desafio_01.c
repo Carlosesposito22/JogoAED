@@ -10,10 +10,10 @@
 #define BALL_MAX_SPEED 760
 #define FADEOUT_DURACAO 0.8f
 #define ANTIVIRUS_SPEED_FACTOR 0.8f
-#define ANTIVIRUS_SPAWN_CHANCE 8
+#define ANTIVIRUS_SPAWN_CHANCE 9
 #define TOPO_BLOCOS    48
 #define LIMITE_INFERIOR (GetScreenHeight() - 270)
-#define MAX_BOLAS 8
+#define MAX_BOLAS 10
 #define MAX_ANTIVIRUS 4
 #define SC 0.8f
 #define BLOCOS_RIGHT_MARGIN 30
@@ -38,7 +38,7 @@
 #define EXPLO_FRAME_DUR 0.10f
 #define EXPLO_TOTAL_FRAMES 10
 #define FALA_INTRO_03 "Mostre habilidade no pong: destrua blocos vermelhos, fuja dos antivírus e impressione Hank!"
-#define FASE3_CHRONO_MAX 180.0f
+#define FASE3_CHRONO_MAX 120.0f
 
 static bool preFalaInicial = true;
 static float cronometro = 0.0f;
@@ -163,19 +163,6 @@ const char* FalaPorResultado(const char* name, bool acerto) {
     return acerto ? FALA_ACERTO_03 : FALA_ERRO_03;
 }
 
-// == GEMINI ICON & DICA
-static Texture2D sprGemini;
-static float geminiRectW = 550;
-static float geminiRectH = 0;
-static int   geminiTextWidth = 0;
-static float geminiRectAnim = 0.0f;
-static bool  geminiMouseOver = false;
-static bool  geminiHelpClicked = false;
-static float geminiAnimSpeed = 6.0f;
-static const char* gemini_help_msg_default = "Clique aqui caso precise de ajuda!";
-static const char* gemini_help_msg_ajuda =
-    "";
-
 static inline int CountActiveBolas(void) {
     int c = 0; for (int i = 0; i < MAX_BOLAS;     ++i) if (bolas[i].ativa)       ++c;
     return c;
@@ -194,21 +181,6 @@ static inline void ClampBallSpeed(Bola *b)
         b->vel.x *= f;
         b->vel.y *= f;
     }
-}
-
-static void AtualizaTamanhoGeminiBox(void)
-{
-    float geminiScale = 0.1f;
-    float geminiH = sprGemini.height * geminiScale;
-    int txtSize = 20;
-    const char* gemini_msg = !geminiHelpClicked ? gemini_help_msg_default : gemini_help_msg_ajuda;
-    geminiTextWidth = MeasureText(gemini_msg, txtSize);
-    float minW = 550;
-    float maxW = GetScreenWidth() - 140;
-    geminiRectW = minW;
-    if (geminiTextWidth + 36 * 2 > minW)
-        geminiRectW = (geminiTextWidth + 36 * 2 > maxW) ? maxW : geminiTextWidth + 36 * 2;
-    geminiRectH = geminiH * 0.75f;
 }
 
 void Init_Desafio_01(void)
@@ -239,9 +211,6 @@ void Init_Desafio_01(void)
     PlayMusicStream(musicaFase);
     audioAtivo = true;
 
-    // == GEMINI LOAD
-    sprGemini     = LoadTexture("src/sprites/os/gemini.png");
-
     SetTextureFilter(texParede, TEXTURE_FILTER_POINT);
     preFalaInicial = true;
     strcpy(fala_exibida, FALA_INTRO_03);
@@ -254,12 +223,6 @@ void Init_Desafio_01(void)
     fadeout_ativo       = false;
     fadeout_time        = 0.0f;
     fase_concluida      = false;
-
-    // == GEMINI INIT
-    AtualizaTamanhoGeminiBox();
-    geminiHelpClicked = false;
-    geminiMouseOver = false;
-    geminiRectAnim = 0.0f;
 
     paddle.rect.x = PONG_AREA_X+20;
     paddle.rect.width  = PADDLE_W * SC;
@@ -354,37 +317,9 @@ void Update_Desafio_01(void)
 
     if (audioAtivo) UpdateMusicStream(musicaFase);
 
-    // == GEMINI ICONE E ANIMAÇÂO
-    float geminiX = 49, geminiY = 67, geminiScale = 0.1f;
-    float geminiW = sprGemini.width * geminiScale;
-    float geminiH = sprGemini.height * geminiScale;
-    AtualizaTamanhoGeminiBox();
-    float rx = geminiX + geminiW - 20.0f;
-    float ry = geminiY + (geminiH - geminiRectH)/2.0f;
-    Rectangle geminiLogoRec = { geminiX, geminiY, geminiW, geminiH };
-    Rectangle geminiRectRec = { rx, ry, geminiRectW, geminiRectH };
-    Vector2 mouseGem = GetMousePosition();
-    bool mouseOverLogo = CheckCollisionPointRec(mouseGem, geminiLogoRec);
-    bool mouseOverRect = CheckCollisionPointRec(mouseGem, geminiRectRec);
-    geminiMouseOver = mouseOverLogo || mouseOverRect;
-    float dir = geminiMouseOver ? 1.0f : -1.0f;
-    geminiRectAnim += dir * geminiAnimSpeed * dt;
-    if (geminiRectAnim > 1.0f) geminiRectAnim = 1.0f;
-    if (geminiRectAnim < 0.0f) geminiRectAnim = 0.0f;
-    if ((mouseOverLogo || mouseOverRect) && IsMouseButtonPressed(MOUSE_LEFT_BUTTON))
-    {
-        if (!geminiHelpClicked) {
-            geminiHelpClicked = true;
-            AtualizaTamanhoGeminiBox();
-            geminiRectAnim = 1.0f;
-        }
-    }
-    // == /GEMINI
-
     if (preFalaInicial)
     {
         UpdateTypeWriter(&writer, dt, IsKeyPressed(KEY_SPACE));
-        // Só ENTER avança! Mouse não!
         if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_KP_ENTER))
         {
             preFalaInicial = false;
@@ -402,7 +337,7 @@ void Update_Desafio_01(void)
     if (fadeout_ativo) {
         fadeout_time += dt;
         if (fadeout_time >= FADEOUT_DURACAO) {
-            bool sucesso = pong_vitoria && pong_derrota;
+            bool sucesso = pong_vitoria && !pong_derrota;
             SetD01Result(&playerStats, sucesso, 0);
             fase_concluida = true;
         }
@@ -731,31 +666,6 @@ void Draw_Desafio_01(void)
             DrawTextureEx(sprEnterButton, (Vector2){btnX,btnY}, 0.0f, btnScale, brilho);
         }
 
-        // == GEMINI DRAW (sempre no topo, igual desafio_01)
-        {
-            float geminiX = 49, geminiY = 67, geminiScale = 0.1f;
-            float geminiW = sprGemini.width * geminiScale;
-            float geminiH = sprGemini.height * geminiScale;
-            const char* gemini_msg = !geminiHelpClicked ? gemini_help_msg_default : gemini_help_msg_ajuda;
-            int txtSize = 20;
-            float rx = geminiX + geminiW - 20.0f;
-            float ry = geminiY + (geminiH - geminiRectH)/2.0f;
-            float animW = geminiRectW * geminiRectAnim;
-            Color logoCol = geminiMouseOver ? (Color){ 18, 60, 32, 255 } : (Color){ 26, 110, 51, 255 };
-            if (geminiRectAnim > 0.01f) 
-            {
-                Color rectCol = (Color){ 15, 42, 26, (unsigned char)( 210 * geminiRectAnim ) };
-                float round = 0.33f;
-                DrawRectangleRounded((Rectangle){ rx, ry, animW, geminiRectH }, round, 12, rectCol);
-                if (geminiRectAnim > 0.05f) {
-                    if (animW > geminiTextWidth + 36*2 - 4)
-                        DrawText(gemini_msg, rx + 36, ry + geminiRectH/2 - txtSize/2, txtSize, WHITE);
-                }
-            }
-            DrawTextureEx(sprGemini, (Vector2){geminiX, geminiY}, 0.0f, geminiScale, logoCol);
-        }
-        // == /GEMINI
-
         EndDrawing();
         return;
     }
@@ -901,31 +811,6 @@ void Draw_Desafio_01(void)
         DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), (Color){0,0,0, alpha});
     }
 
-    // == GEMINI DRAW (sempre no topo, igual desafio_01)
-    {
-        float geminiX = 49, geminiY = 67, geminiScale = 0.1f;
-        float geminiW = sprGemini.width * geminiScale;
-        float geminiH = sprGemini.height * geminiScale;
-        const char* gemini_msg = !geminiHelpClicked ? gemini_help_msg_default : gemini_help_msg_ajuda;
-        int txtSize = 20;
-        float rx = geminiX + geminiW - 20.0f;
-        float ry = geminiY + (geminiH - geminiRectH)/2.0f;
-        float animW = geminiRectW * geminiRectAnim;
-        Color logoCol = geminiMouseOver ? (Color){ 18, 60, 32, 255 } : (Color){ 26, 110, 51, 255 };
-        if (geminiRectAnim > 0.01f) 
-        {
-            Color rectCol = (Color){ 15, 42, 26, (unsigned char)( 210 * geminiRectAnim ) };
-            float round = 0.33f;
-            DrawRectangleRounded((Rectangle){ rx, ry, animW, geminiRectH }, round, 12, rectCol);
-            if (geminiRectAnim > 0.05f) {
-                if (animW > geminiTextWidth + 36*2 - 4)
-                    DrawText(gemini_msg, rx + 36, ry + geminiRectH/2 - txtSize/2, txtSize, WHITE);
-            }
-        }
-        DrawTextureEx(sprGemini, (Vector2){geminiX, geminiY}, 0.0f, geminiScale, logoCol);
-    }
-    // == /GEMINI
-
     EndDrawing();
 }
 bool Fase_Desafio_01_Concluida(void) { return fase_concluida; }
@@ -944,8 +829,6 @@ void Unload_Desafio_01(void)
     UnloadTexture(bgJogo);
     UnloadTexture(sprAntiVirus);
     UnloadTexture(exploTex);
-    // == GEMINI unload
-    UnloadTexture(sprGemini);
 
     if (audioAtivo) {
         StopMusicStream(musicaFase);

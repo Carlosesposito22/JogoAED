@@ -30,7 +30,7 @@ if /i "%comando%"=="passar firewall" (
     timeout /t 1 >nul
 
     echo.
-    echo [SUCESSO] Firewall ultrapassado. Teste inicial concluído.
+    echo [SUCESSO] Firewall ultrapassado. Teste inicial concluido.
     echo.
 
     :: Cria ou sobrescreve dados.txt na pasta atual
