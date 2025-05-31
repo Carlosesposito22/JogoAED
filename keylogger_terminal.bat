@@ -17,6 +17,7 @@ echo       `:; SS    `:; SS    `:; SS    `:;    `:;
 echo. ,;   ;,. SS    ;,. SS    ;,. SS    ;,.    ;,.    
 echo `:;;;;;:' :;    ;:' `:;;;;;:' `:;;;;;:'    ;:'    
 echo.
+echo Aguarde até o funcionário digitar a API KEY e copie ela
 
 :: Solicita e valida o IP antes de prosseguir
 :AskIP
@@ -48,9 +49,9 @@ set palavras[11]=[KEY_ENTER]
 set palavras[12]=nano
 set palavras[13]=api_config.txt
 set palavras[14]=[KEY_ENTER]
-set palavras[15]=API_KEY:
+set palavras[15]=API_KEY: AccessRune321
 set palavras[16]=[KEY_SPACE]
-set palavras[17]=AccessRune321
+set palavras[17]=cd ..
 set palavras[18]=[KEY_ENTER]
 set palavras[19]=chmod
 set palavras[20]=600

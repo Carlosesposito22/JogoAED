@@ -26,3 +26,5 @@ João Guilherme, Alice, 85.4, 1
 Mateus Cunha, Dante, 32.3, 1
 Rafael Ferreira, Alice, 100.4, 1
 Isabela Pereira, Jade, 73.1, 0
+Sem Nome, Levi, 0.00, 0
+999, Jade, 65.99, 1

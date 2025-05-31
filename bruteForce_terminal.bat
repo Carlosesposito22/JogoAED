@@ -14,7 +14,7 @@ echo.
 
 :: Solicita e valida URL do site antes de prosseguir
 :AskURL
-set /p siteURL=Insira a URL do site: 
+set /p siteURL=Cole o link do site: 
 if /i not "!siteURL!"=="https://cybertechinc.vercel.app/" (
     echo [ERRO] URL invalida. Tente novamente.
     goto AskURL
@@ -22,7 +22,7 @@ if /i not "!siteURL!"=="https://cybertechinc.vercel.app/" (
 
 :: Solicita path de users.txt até ser válido
 :AskUsers
-set /p usersFile=Insira o caminho para users.txt: 
+set /p usersFile=Cole o arquivo users.txt aqui: 
 set "usersFile=!usersFile:"=! "
 if not exist "!usersFile!" (
     echo [ERRO] Arquivo "!usersFile!" nao encontrado.
@@ -31,7 +31,7 @@ if not exist "!usersFile!" (
 
 :: Solicita path de passwords.txt até ser válido
 :AskPasswords
-set /p passFile=Insira o caminho para passwords.txt: 
+set /p passFile=Cole o arquivo passwords.txt aqui: 
 set "passFile=!passFile:"=! "
 if not exist "!passFile!" (
     echo [ERRO] Arquivo "!passFile!" nao encontrado.
@@ -61,7 +61,9 @@ for /f "usebackq delims=" %%u in ("!usersFile!") do (
         :: Verifica credenciais corretas
         if /i "%%u"=="superuser" if "%%p"=="passwd#Su123" (
             echo.
-            echo credentials found: superuser ^& passwd#Su123
+            echo credentials found:
+            echo Username: superuser
+            echo Senha: passwd#Su123
             ping 127.0.0.1 -n 61 >nul
             echo [INFO] Atualizando...
             ping 127.0.0.1 -n 6 >nul
@@ -72,7 +74,7 @@ for /f "usebackq delims=" %%u in ("!usersFile!") do (
 :AskSecretKey
 cls
 echo [INFO] Secret Base64 Encrypted ID Key:
-set /p secretKey=Digite a chave secreta: 
+set /p secretKey=Digite a chave secreta encontrada no site: 
 if /i "!secretKey!"=="dGVzdCBwYXNzZWQ=" (
     echo [INFO] Decrypted key: 'test passed'
     echo OK > dadosBruteForce.txt
