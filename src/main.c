@@ -118,6 +118,14 @@ int main(void)
     static bool transicao_proxy_Initialized = false;
     static bool transicao_proxy2_Initialized = false;
 
+    // DEBUG DE SELEÇÃO DO NOME
+    strncpy(gSelectedCharacterName, "Levi", MAX_PLAYER_NAME);
+    gSelectedCharacterName[MAX_PLAYER_NAME-1] = '\0';
+    strncpy(gPlayerName, "Carlos Eduardo Esposito", MAX_PLAYER_NAME);
+    gPlayerName[MAX_PLAYER_NAME-1] = '\0';
+    playerStats.isPassouSelecao = false;
+    // FIM DO DEBUG DE NOME
+
     while (!WindowShouldClose())
     {
         UpdateMusicStream(music);
@@ -163,6 +171,144 @@ int main(void)
                 state = APP_LOADING_SCREEN;
                 PFP_Loading = APP_INTRO;
             }
+            // DEBUG KEYS
+            if (IsKeyPressed(KEY_ONE))
+            {
+                PauseMusicStream(music);
+                UnloadMenu();
+                desafio_01_Initialized = false;
+                state = APP_DESAFIO_01;
+            }
+            if (IsKeyPressed(KEY_TWO))
+            {
+                PauseMusicStream(music);
+                UnloadMenu();
+                desafio_02_Initialized = false;
+                state = APP_DESAFIO_02;
+            }
+            if (IsKeyPressed(KEY_THREE))
+            {
+                PauseMusicStream(music);
+                UnloadMenu();
+                desafio_03_Initialized = false;
+                state = APP_DESAFIO_03;
+            }
+            if (IsKeyPressed(KEY_FOUR))
+            {
+                PauseMusicStream(music);
+                UnloadMenu();
+                desafio_04_Initialized = false;
+                state = APP_DESAFIO_04;
+            }
+            if (IsKeyPressed(KEY_O))
+            {
+                PauseMusicStream(music);
+                UnloadMenu();
+                pendrive_Initialized = false;
+                state = APP_PENDRIVE;
+            }
+            if (IsKeyPressed(KEY_K))
+            {
+                PauseMusicStream(music);
+                UnloadMenu();
+                fase4Initialized = false;
+                state = APP_FASE4;
+            }
+            if (IsKeyPressed(KEY_L))
+            {
+                PauseMusicStream(music);
+                UnloadMenu();
+                shellUbuntu_Initialized = false;
+                state = APP_SHELL_UBUNTU;
+            }
+            if (IsKeyPressed(KEY_Z))
+            {
+                PauseMusicStream(music);
+                UnloadMenu();
+                keyloggerUbuntu_Initialized = false;
+                state = APP_KEYLOGGER_UBUNTU;
+            }
+            if (IsKeyPressed(KEY_X))
+            {
+                PauseMusicStream(music);
+                UnloadMenu();
+                proxyUbuntu_Initialized = false;
+                state = APP_PROXY_UBUNTU;
+            }
+            if (IsKeyPressed(KEY_C))
+            {
+                PauseMusicStream(music);
+                UnloadMenu();
+                keylogger3D_Initialized = false;
+                state = APP_KEYLOGGER_3D;
+            }
+            if (IsKeyPressed(KEY_V))
+            {
+                PauseMusicStream(music);
+                UnloadMenu();
+                shell3D_01_Initialized = false;
+                state = APP_SHELL_3D_PART1;
+            }
+            if (IsKeyPressed(KEY_E))
+            {
+                PauseMusicStream(music);
+                UnloadMenu();
+                shell3D_02_Initialized = false;
+                state = APP_SHELL_3D_PART2;
+            }
+            if (IsKeyPressed(KEY_J))
+            {
+                PauseMusicStream(music);
+                UnloadMenu();
+                proxy3D_Initialized = false;
+                state = APP_PROXY_3D;
+            }
+            if (IsKeyPressed(KEY_M))
+            { 
+                PauseMusicStream(music);
+                UnloadMenu();
+                InitDebug();
+                state = APP_DEBUG;
+            }
+            if (IsKeyPressed(KEY_T))
+            {
+                PauseMusicStream(music);
+                UnloadMenu();
+                perguntaAtual++;
+                Init_Interrogatorio(-1, NULL, NULL);
+                interrogatorio_Initialized = true;
+                PFP_Iterrogatorio = APP_DESAFIO_01;
+                state = INTERROGATORIO;
+            }
+            if (IsKeyPressed(KEY_B))
+            {
+                PauseMusicStream(music);
+                UnloadMenu();
+                shellBox_Initialized = false;
+                state = APP_SHELL_BOX;
+            }
+            if (IsKeyPressed(KEY_G))
+            {
+                PauseMusicStream(music);
+                UnloadMenu();
+                finalJogo_Initialized = false;
+                state = APP_FINAL_JOGO;
+            }
+            if (IsKeyPressed(KEY_PERIOD))
+            {
+                PauseMusicStream(music);
+                UnloadMenu();
+                transicao_proxy_Initialized = false;
+                state = APP_TRANSICAO_PROXY;
+            }
+            if (IsKeyPressed(KEY_F))
+            {
+                PauseMusicStream(music);
+                UnloadMenu();
+                transicao_Initialized = false;
+                state = APP_TRANSICAO;
+            }
+            // FIM DEBUG
         }
         else if (state == APP_RANKING)
         {
