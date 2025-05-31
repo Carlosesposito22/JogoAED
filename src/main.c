@@ -44,11 +44,12 @@ PlayerStats playerStats;
 
 typedef struct { const char *audio; const char *texto; } RoteiroHank;
 static const RoteiroHank roteiros[] = {
-    { 
+    {
         "src/music/fala_hank_desafio01.mp3",
-        "Impressionante! Você conseguiu identificar rapidamente as prioridades do sistema "
-        "e realocar os recursos com precisão, mantendo a calma mesmo sob pressão. "
-        "Certamente uma habilidade essencial para lidar com situações críticas. [ENTER]"
+        "Muito bem! Você mostrou reflexos afiados e domínio da situação. "
+        "Conseguiu destruir os blocos certos sem ser pego pelos antivírus, "
+        "o que demonstra atenção aos detalhes e controle sob pressão. "
+        "É exatamente esse tipo de sangue frio que precisamos por aqui. [ENTER]"
     },
     { 
         "src/music/fala_hank_desafio02.mp3",
@@ -56,11 +57,11 @@ static const RoteiroHank roteiros[] = {
         "cifrado e perspicácia ao identificar a técnica correta para decifrá-lo. Essa habilidade "
         "em lidar com criptografia é essencial para proteger a integridade dos dados. [ENTER]"
     },
-    {
+    { 
         "src/music/fala_hank_desafio03.mp3",
-        "Parabéns! Você foi rápido ao perceber que o e-mail era suspeito e demonstrou cautela "
-        "ao não agir impulsivamente. Essa capacidade de identificar possíveis golpes e manter "
-        "a postura defensiva é fundamental nos dias atuias. [ENTER]"
+        "Impressionante! Você conseguiu identificar rapidamente as prioridades do sistema "
+        "e realocar os recursos com precisão, mantendo a calma mesmo sob pressão. "
+        "Certamente uma habilidade essencial para lidar com situações críticas. [ENTER]"
     },
     { 
         "src/music/fala_hank_desafio04.mp3",
@@ -437,7 +438,7 @@ int main(void)
         {
             if (!transicao_Initialized)
             {
-                Init_TransitionScreen(1, "Redirecione os sistemas criticos");
+                Init_TransitionScreen(1, "PongWall");
                 transicao_Initialized = true;
             }
             Update_TransitionScreen();
@@ -583,7 +584,7 @@ int main(void)
                 Unload_KeyloggerUbuntu();
                 keyloggerUbuntu_Initialized = false;
 
-                Init_TransitionScreen(3, "Golpe ou Verdade?");
+                Init_TransitionScreen(3, "Redirecione os sistemas criticos");
                 transicao_Initialized = true;
                 state = APP_TRANSICAO;
                 PFP_Trasicao = APP_DESAFIO_03;

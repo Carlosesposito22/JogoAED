@@ -1,5 +1,5 @@
-#ifndef FASE3_H
-#define FASE3_H
+#ifndef DESAFIO01_H
+#define DESAFIO01_H
 
 #include <stdbool.h>
 #include "generalFunctions.h"

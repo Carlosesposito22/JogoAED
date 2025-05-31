@@ -187,7 +187,7 @@ void Init_Interrogatorio(int perguntaIndex, const char *audio, const char *texto
     ctx.bustupChegou = ctx.somSurpresaTocado = false;
 
     // ETAPA 2 ------------------------------------------------------------
-    InitTypeWriter(&ctx.writer, ctx.falaTexto, 16.0f);
+    InitTypeWriter(&ctx.writer, ctx.falaTexto, 15.0f);
     ctx.mostrarConfiante = ctx.dialogoFinalizado = false;
 
     // ETAPA 3 ------------------------------------------------------------

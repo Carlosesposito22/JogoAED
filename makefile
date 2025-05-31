@@ -13,7 +13,7 @@ CURL_DLL = $(BUILD_DIR)/libcurl-x64.dll
 ASSET_DIRS = fonts models music sprites tasks
 BAT_FILES = bruteForce_terminal.bat first_terminal.bat keylogger_terminal.bat proxy_terminal.bat shell.bat
 TXT_FILES = shellPICA.txt ranking.txt
-EXTRA_DIRS = reverseShellFiles
+EXTRA_DIRS = reverseShellFiles hackingFiles
 
 # Saídas
 EXE_EXT = .exe
