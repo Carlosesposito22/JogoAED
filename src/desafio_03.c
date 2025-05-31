@@ -1,73 +1,174 @@
 #include "desafio_03.h"
-
-typedef struct {
-    const char* texto;
-    bool correta;
-    bool desabilitada;
-} DialogueOption;
-
-typedef struct {
-    const char* pergunta_txt;
-    DialogueOption* opcoes;
-    int num_opcoes;
-    int opcao_selecionada_usuario;
-    bool respondeu;
-    float timer_restante;
-    float timer_total;
-    bool timer_ativo;
-    bool timer_explodiu;
-} DialogueQuestion;
-
-#define FASE2_FADEOUT_DURACAO 0.8f
-#define FALA_NORMAL_03 "Você recebe um e-mail com o assunto: 'Parabéns! Você ganhou um prêmio exclusivo! Clique no link para resgatar agora.'\nO e-mail contém erros gramaticais e um link suspeito. O que você faz?"
-#define FALA_ACERTO_03  "Escolha certeira! Hank deve ter anotado meu cuidado — estou um passo à frente na vaga."
-#define FALA_ERRO_03    "Putz… decisão errada! O sistema de monitoramento disparou e Hank vai notar esse deslize."
-#define FALA_JOAO_ACERTO "Ufa, passei por essa sem suar. Venha o próximo desafio!"
-#define FALA_JOAO_ERRO   "Droga, cliquei errado! O alarme tocou e o Hank vai questionar minha atenção."
-#define FALA_CARLOS_ACERTO "Isso foi tranquilo — vulnerabilidade na cara. Mais pontos pra mim!"
-#define FALA_CARLOS_ERRO   "Como deixei passar essa? Um deslize bobo bem na frente do Hank"
+#include <string.h>
+#include <math.h>
+#define NUM_COLUNAS 6
+#define MAX_LINHAS 40
+#define BALL_SIZE 28
+#define PADDLE_W 32
+#define PADDLE_H 120
+#define BALL_SPEED 390
+#define BALL_MAX_SPEED 620
+#define FADEOUT_DURACAO 0.8f
+#define TOPO_BLOCOS    48
+#define LIMITE_INFERIOR (GetScreenHeight() - 270)
+#define MAX_BOLAS 20
+#define MAX_ANTIVIRUS 16
+#define SC 0.8f
+#define BLOCOS_RIGHT_MARGIN 30
+#define BLOCOS_RIGHT_MARGIN_EXTRA 34
+#define AREA_PONG_X 454
+#define AREA_PONG_Y TOPO_BLOCOS
+#define AREA_PONG_W (GetScreenWidth() - AREA_PONG_X)
+#define AREA_PONG_H (LIMITE_INFERIOR - TOPO_BLOCOS)
+#define PONG_AREA_W  ((int)(AREA_PONG_W * SC)+92)
+#define PONG_AREA_H  ((int)(AREA_PONG_H * SC)+10)
+#define PONG_AREA_X  ((GetScreenWidth()  - PONG_AREA_W)/2+6)
+#define PONG_AREA_Y  ((GetScreenHeight() - PONG_AREA_H)/2-160)
+#define FALA_NORMAL_03 "Quebre todos os blocos vermelhos usando a bola azul!\nMova a barra com o mouse. Clique para lançar."
+#define FALA_ACERTO_03 "Escolha certeira! Hank deve ter anotado meu cuidado — estou um passo à frente na vaga."
+#define FALA_ERRO_03   "Putz… decisão errada! O sistema de monitoramento disparou e Hank vai notar esse deslize."
+#define FALA_JOAO_ACERTO "Ufa, rebati bem! Venha o próximo desafio!"
+#define FALA_JOAO_ERRO   "Droga, perdi! O alarme tocou e o Hank vai questionar minha atenção."
+#define FALA_CARLOS_ACERTO "Isso foi tranquilo — Pong na veia. Mais pontos pra mim!"
+#define FALA_CARLOS_ERRO   "Como deixei passar essa? Um erro bobo bem na frente do Hank."
 #define FALA_MAMEDE_ACERTO "Perfeito. Cada etapa concluída me deixa mais perto da contratação."
 #define FALA_MAMEDE_ERRO   "Ah, vacilei justo agora! Preciso compensar nos próximos testes ou perco a chance."
-#define GEMINI_RECT_PADRAO 550
-#define GEMINI_PAD_X 36
+#define EXPLO_FRAME_DUR 0.10f
+#define EXPLO_TOTAL_FRAMES 10
+#define FALA_INTRO_03 "Mostre habilidade no pong: destrua blocos vermelhos,fuja dos antivírus e impressione Hank!\nUse o mouse pra mover. Clique enter para jogar e em qualquer lugar da tela para enviar o virus"
+#define FASE3_CHRONO_MAX 120.0f
 
+static bool preFalaInicial = true;
+static float cronometro = 0.0f;
+static float cronometro_elapsed = 0.0f;
+static bool cronometro_iniciado = false;
+typedef struct {
+    float x, y, w, h;
+} ExploFrame;
+static const ExploFrame explosionFrames[EXPLO_TOTAL_FRAMES] = {
+    {-69,   -63,  33,  40},
+    {-203,  -59,  48,  50},
+    {-336,  -46,  70,  76},
+    {-477,  -43,  85,  95},
+    {-610,  -30,  91, 109},
+    {-37,  -179, 103, 113},
+    {-180, -186,  99, 105},
+    {-331, -187,  96, 101},
+    {-467, -177,  98, 113},
+    {-618, -180,  87, 109}
+};
+typedef struct {
+    Rectangle rect;
+    bool ativa;
+    bool amarelo;
+    bool exploding;
+    float explosionTimer;
+    int explosionFrame;
+    bool destroyed;
+} BlocoVermelho;
+typedef struct {
+    Vector2 pos;
+    Vector2 vel;
+    bool lancada;
+    bool ativa;
+    float angle;
+    float angularSpeed;
+    float pulseOffset;
+} Bola;
+typedef struct {
+    Rectangle rect;
+} Paddle;
+typedef struct {
+    Vector2 pos;
+    Vector2 vel;
+    bool ativa;
+    Rectangle rect;
+} AntiVirus;
+static AntiVirus antiviruses[MAX_ANTIVIRUS];
+static Texture2D sprAntiVirus;
 static TypeWriter writer;
 static char fala_exibida[512];
 static bool podeAvancar = false;
 static float respostaShowTimer = 0.0f;
 static const float RESPOSTA_MOSTRA_SEG = 5.0f;
-static int selectedOption = 0;
-static bool geminiHelpClicked = false;
-static float geminiRectW = 550;
-static float geminiRectH = 0;
-static int   geminiTextWidth = 0;
-static float geminiRectAnim = 0.0f;
-static bool geminiMouseOver = false;
-static float geminiAnimSpeed = 6.0f;
-static bool fase2_fazendo_fadeout = false;
-static float fase2_fadeout_time = 0.0f;
-static bool fase_concluida = false; 
-static const char* gemini_help_msg_default = "Clique aqui caso precise de ajuda!";
-static const char* gemini_help_msg_ajuda = "As opções A e D estão erradas";
-
+static bool fadeout_ativo = false;
+static float fadeout_time = 0.0f;
+static bool fase_concluida = false;
 static Texture2D fundo;
 static Texture2D pergunta_img;
 static Texture2D sprJoao, sprJoao2, sprJoao3;
 static Texture2D sprMateus, sprMateus2, sprMateus3;
 static Texture2D sprCarlos, sprCarlos2, sprCarlos3;
 static Texture2D sprMamede, sprMamede2, sprMamede3;
-static Texture2D sprGemini;
 static Texture2D sprEnterButton;
+static Texture2D texParede;
+static Texture2D sprVirus;
+static Texture2D sprBaseJogo;
+static Texture2D bgJogo;
+static Texture2D exploTex;
+static BlocoVermelho blocos[NUM_COLUNAS][MAX_LINHAS];
+static int linhas_ativas = 0;
+static int blocos_ativos = 0;
+static Bola bolas[MAX_BOLAS];
+static int num_bolas = 1;
+static Paddle paddle;
+static bool pong_vitoria = false;
+static bool pong_derrota = false;
+static bool pong_mostrabotao = false;
+// --- ESCOLHA DE SPRITE IGUAL DESAFIO 01 ---
+typedef struct {
+    Texture2D* sprite;
+    float scale;
+    int carlosExtraOffset;
+    int mamedeExtraOffset;
+} CharacterSpriteResult;
+CharacterSpriteResult GetCharacterSprite(const char* name, bool ganhou, bool perdeu) {
+    CharacterSpriteResult res = {&sprJoao, 0.6f, 0, 0}; // Se vazio: sprJoao!
+    if (!name) name = "";
+    if (strcmp(name, "Dante") == 0) {
+        if (ganhou)      { res.sprite = &sprMateus2; res.scale = 0.8f; }
+        else if(perdeu)  { res.sprite = &sprMateus3; res.scale = 0.8f; }
+        else             { res.sprite = &sprMateus;  res.scale = 1.3f; }
+    }
+    else if (strcmp(name, "Alice") == 0) {
+        if (ganhou)      { res.sprite = &sprJoao2; res.scale = 0.95f; }
+        else if(perdeu)  { res.sprite = &sprJoao3; res.scale = 0.95f; }
+        else             { res.sprite = &sprJoao;  res.scale = 0.6f; }
+    }
+    else if (strcmp(name, "Jade") == 0) {
+        if (ganhou)      { res.sprite = &sprCarlos2; res.scale = 1.02f; res.carlosExtraOffset = -70; }
+        else if(perdeu)  { res.sprite = &sprCarlos3; res.scale = 1.0f;  res.carlosExtraOffset = -44; }
+        else             { res.sprite = &sprCarlos;  res.scale = 0.56f; res.carlosExtraOffset = 0; }
+    }
+    else if (strcmp(name, "Levi") == 0) {
+        if (ganhou)      { res.sprite = &sprMamede2; res.scale = 1.0f; }
+        else if(perdeu)  { res.sprite = &sprMamede3; res.scale = 1.0f; }
+        else             { res.sprite = &sprMamede;  res.scale = 1.0f; }
+    }
+    // Se vazio, já é sprJoao por default
+    return res;
+}
+// --------------------------------------------------------
+const char* FalaPorResultado(const char* name, bool acerto) {
+    if (!name || !name[0]) name = "Alice";
+    if (strcmp(name, "Alice") == 0)      return acerto ? FALA_JOAO_ACERTO   : FALA_JOAO_ERRO;
+    if (strcmp(name, "Jade") == 0)       return acerto ? FALA_CARLOS_ACERTO : FALA_CARLOS_ERRO;
+    if (strcmp(name, "Levi") == 0)       return acerto ? FALA_MAMEDE_ACERTO : FALA_MAMEDE_ERRO;
+    return acerto ? FALA_ACERTO_03 : FALA_ERRO_03;
+}
 
-static DialogueQuestion pergunta2;
-static DialogueOption opcoesFase2[] = 
-{
-    {"A) Manda seus dados pessoais", false, false},
-    {"B) Abre o e-mail e lê com atenção.", false, false},
-    {"C) Encaminha para os amigos para receberem o prémio.", false, false},
-    {"D) Clica no link imediatamente para não perder o prêmio.", false, false},
-    {"E) Alerta amigos e familiares sobre o possível golpe.", true, false},
-};
+// == GEMINI ICON & DICA
+static Texture2D sprGemini;
+static float geminiRectW = 550;
+static float geminiRectH = 0;
+static int   geminiTextWidth = 0;
+static float geminiRectAnim = 0.0f;
+static bool  geminiMouseOver = false;
+static bool  geminiHelpClicked = false;
+static float geminiAnimSpeed = 6.0f;
+static const char* gemini_help_msg_default = "Clique aqui caso precise de ajuda!";
+static const char* gemini_help_msg_ajuda =
+    "DICA: Mire nos blocos vermelhos e fuja dos antivírus/amarelos para não perder!";
 
 static void AtualizaTamanhoGeminiBox(void)
 {
@@ -76,290 +177,455 @@ static void AtualizaTamanhoGeminiBox(void)
     int txtSize = 20;
     const char* gemini_msg = !geminiHelpClicked ? gemini_help_msg_default : gemini_help_msg_ajuda;
     geminiTextWidth = MeasureText(gemini_msg, txtSize);
-    float minW = GEMINI_RECT_PADRAO;
+    float minW = 550;
     float maxW = GetScreenWidth() - 140;
     geminiRectW = minW;
-    if (geminiTextWidth + 2 * GEMINI_PAD_X > minW)
-        geminiRectW = (geminiTextWidth + 2 * GEMINI_PAD_X > maxW) ? maxW : geminiTextWidth + 2 * GEMINI_PAD_X;
+    if (geminiTextWidth + 36 * 2 > minW)
+        geminiRectW = (geminiTextWidth + 36 * 2 > maxW) ? maxW : geminiTextWidth + 36 * 2;
     geminiRectH = geminiH * 0.75f;
-}
-
-const char* FalaPorResultado(const char* name, bool acerto) {
-    if (!name || !name[0]) name = "Dante";
-    if (strcmp(name, "Alice") == 0)      return acerto ? FALA_JOAO_ACERTO   : FALA_JOAO_ERRO;
-    if (strcmp(name, "Jade") == 0)    return acerto ? FALA_CARLOS_ACERTO : FALA_CARLOS_ERRO;
-    if (strcmp(name, "Levi") == 0)    return acerto ? FALA_MAMEDE_ACERTO : FALA_MAMEDE_ERRO;
-    return acerto ? FALA_ACERTO_03 : FALA_ERRO_03;
-}
-
-void InitDialogueQuestion(DialogueQuestion* dq, const char* pergunta_txt, DialogueOption* opcoes, int num_opcoes, float timer_total) {
-    if (!dq) return;
-    dq->pergunta_txt = pergunta_txt;
-    dq->opcoes = opcoes;
-    dq->num_opcoes = num_opcoes;
-    dq->opcao_selecionada_usuario = -1;
-    dq->respondeu = false;
-    dq->timer_restante = timer_total;
-    dq->timer_total = timer_total;
-    dq->timer_ativo = true;
-    dq->timer_explodiu = false;
-    for (int i=0; i<num_opcoes; ++i)
-        dq->opcoes[i].desabilitada = false; // reabilita tudo
-}
-
-void UpdateDialogueQuestion(DialogueQuestion* dq, float deltaTime) {
-    if (!dq) return;
-    if (!dq->timer_explodiu && dq->timer_ativo && !dq->respondeu) {
-        dq->timer_restante -= deltaTime;
-        if (dq->timer_restante <= 0.0f) {
-            dq->timer_restante = 0.0f;
-            dq->timer_explodiu = true;
-            dq->timer_ativo = false;
-            for(int i=0; i<dq->num_opcoes; ++i)
-                dq->opcoes[i].desabilitada = true;
-        }
-    }
-}
-
-void DialogueNavigateOptions(const DialogueQuestion* dq, int* selectedIndex, int direction) {
-    if (!dq || !selectedIndex) return;
-    int idx = *selectedIndex;
-    int tries = 0;
-    do {
-        idx = (idx + direction + dq->num_opcoes) % dq->num_opcoes;
-        tries++;
-    } while (dq->opcoes[idx].desabilitada && tries < dq->num_opcoes);
-    if (!dq->opcoes[idx].desabilitada)
-        *selectedIndex = idx;
-}
-
-int GetDialogueOptionClick(const DialogueQuestion* dq,
-    int offsetX, int offsetY, int baseWidth, int rectHeight, int spacing, int larguraStep)
-{
-    if (!dq) return -1;
-    Vector2 mouse = GetMousePosition();
-    for (int i = 0; i < dq->num_opcoes; i++) {
-        int rectWidth = baseWidth + i * larguraStep;
-        int y = offsetY + i * (rectHeight + spacing);
-        int x = GetScreenWidth() - rectWidth - offsetX;
-        Rectangle rec = {x, y, rectWidth, rectHeight};
-        if (!dq->opcoes[i].desabilitada &&
-            CheckCollisionPointRec(mouse, rec) &&
-            IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
-            return i;
-        }
-    }
-    return -1;
-}
-
-void DrawDialogueOption(const DialogueOption* opt, Rectangle rec, bool selected, bool disabled, bool blink, Color base, Color txtCor) {
-    Color cor = base;
-    DrawRectangleRounded(rec, 0.32f, 16, cor);
-    DrawText(opt->texto, rec.x+36, rec.y+rec.height/2-24/2, 24, txtCor);
-}
-
-void DrawAllDialogueOptions(const DialogueQuestion* dq, int selected, int offsetX, int offsetY,
-    int baseWidth, int rectHeight, int spacing, int larguraStep,
-    int blinkWrong, bool blink, int blinkCorrect)
-{
-    Color rectGray      = (Color){56, 56, 56, 216};
-    Color hoverGreen    = (Color){26,110,51,235};
-    Color disabledGray  = (Color){90,90,90,175};
-    Vector2 mouse = GetMousePosition();
-    for (int i = 0; i < dq->num_opcoes; i++) {
-        int rectWidth = baseWidth + i * larguraStep;
-        int y = offsetY + i * (rectHeight + spacing);
-        int x = GetScreenWidth() - rectWidth - offsetX;
-        Rectangle rec = {x, y, rectWidth, rectHeight};
-        int mouseOver = CheckCollisionPointRec(mouse, rec);
-        bool optSelected = (selected == i);
-        Color txtCor = WHITE;
-        Color baseCor = rectGray;
-
-        if ((blinkWrong == i) && blink) {
-            baseCor = (Color){230, 30, 30, 210};
-            txtCor = WHITE;
-        }
-        else if ((blinkCorrect == i) && blink) {
-            baseCor = (Color){26, 110, 51, 255};
-            txtCor = WHITE;
-        }
-        else if (dq->opcoes[i].desabilitada) {
-            baseCor = disabledGray;
-            txtCor = (Color){180,180,180,210};
-        }
-        else if (!dq->respondeu && !dq->opcoes[i].desabilitada && (mouseOver || optSelected)) {
-            baseCor = hoverGreen;
-        }
-
-        DrawDialogueOption(&dq->opcoes[i], rec, optSelected, dq->opcoes[i].desabilitada, blink, baseCor, txtCor);
-    }
 }
 
 void Init_Desafio_03(void)
 {
-    fundo      = LoadTexture("src/sprites/empresa3.png");
-    sprJoao    = LoadTexture("src/sprites/joaoSprite.png");
-    sprJoao2   = LoadTexture("src/sprites/joao2.png");
-    sprJoao3   = LoadTexture("src/sprites/joao3.png");
-    sprMateus  = LoadTexture("src/sprites/mateusSprite.png");
-    sprMateus2 = LoadTexture("src/sprites/mateus2.png");
-    sprMateus3 = LoadTexture("src/sprites/mateus3.png");
-    sprCarlos  = LoadTexture("src/sprites/carlosSprite.png");
-    sprCarlos2 = LoadTexture("src/sprites/carlos2.png");
-    sprCarlos3 = LoadTexture("src/sprites/carlos3.png");
-    sprMamede  = LoadTexture("src/sprites/mamedeSprite.png");
-    sprMamede2 = LoadTexture("src/sprites/mamede2.png");
-    sprMamede3 = LoadTexture("src/sprites/mamede3.png");
-    sprGemini  = LoadTexture("src/sprites/os/gemini.png");
-    pergunta_img   = LoadTexture("src/sprites/pergunta3.png");
-    sprEnterButton = LoadTexture("src/sprites/enter_button.png");
-    
-    strcpy(fala_exibida, FALA_NORMAL_03);
-    InitDialogueQuestion(&pergunta2, FALA_NORMAL_03, opcoesFase2, 5, 60.0f);
-    InitTypeWriter(&writer, fala_exibida, 26.5f);
-    AtualizaTamanhoGeminiBox();
+    fundo         = LoadTexture("src/sprites/pc_perfect.png");
+    sprJoao       = LoadTexture("src/sprites/joaoSprite.png");
+    sprJoao2      = LoadTexture("src/sprites/joao2.png");
+    sprJoao3      = LoadTexture("src/sprites/joao3.png");
+    sprMateus     = LoadTexture("src/sprites/mateusSprite.png");
+    sprMateus2    = LoadTexture("src/sprites/mateus2.png");
+    sprMateus3    = LoadTexture("src/sprites/mateus3.png");
+    sprCarlos     = LoadTexture("src/sprites/carlosSprite.png");
+    sprCarlos2    = LoadTexture("src/sprites/carlos2.png");
+    sprCarlos3    = LoadTexture("src/sprites/carlos3.png");
+    sprMamede     = LoadTexture("src/sprites/mamedeSprite.png");
+    sprMamede2    = LoadTexture("src/sprites/mamede2.png");
+    sprMamede3    = LoadTexture("src/sprites/mamede3.png");
+    sprEnterButton= LoadTexture("src/sprites/enter_button.png");
+    pergunta_img  = LoadTexture("src/sprites/pergunta3.png");
+    texParede     = LoadTexture("src/sprites/paredepong2.png");
+    sprVirus      = LoadTexture("src/sprites/virus.png");
+    sprBaseJogo   = LoadTexture("src/sprites/baseJogo.png");
+    bgJogo        = LoadTexture("src/sprites/bgJogo.png");
+    sprAntiVirus  = LoadTexture("src/sprites/antiVirus.png");
+    exploTex      = LoadTexture("src/sprites/explo.png");
 
-    selectedOption        = 0;
-    geminiRectAnim        = 0.0f;
-    respostaShowTimer     = 0.0f;
-    fase2_fadeout_time    = 0.0f;
-    geminiHelpClicked     = false;
-    geminiMouseOver       = false;
-    podeAvancar           = false;
-    fase2_fazendo_fadeout = false;
-    fase_concluida        = false;
+    // == GEMINI LOAD
+    sprGemini     = LoadTexture("src/sprites/os/gemini.png");
+
+    SetTextureFilter(texParede, TEXTURE_FILTER_POINT);
+    preFalaInicial = true;
+    strcpy(fala_exibida, FALA_INTRO_03);
+    InitTypeWriter(&writer, fala_exibida, 26.0f); 
+    cronometro = FASE3_CHRONO_MAX;
+    cronometro_elapsed = 0.0f;
+    cronometro_iniciado = false;
+    podeAvancar         = false;
+    respostaShowTimer   = 0.0f;
+    fadeout_ativo       = false;
+    fadeout_time        = 0.0f;
+    fase_concluida      = false;
+
+    // == GEMINI INIT
+    AtualizaTamanhoGeminiBox();
+    geminiHelpClicked = false;
+    geminiMouseOver = false;
+    geminiRectAnim = 0.0f;
+
+    paddle.rect.x = PONG_AREA_X+20;
+    paddle.rect.width  = PADDLE_W * SC;
+    paddle.rect.height = PADDLE_H * SC;
+    paddle.rect.y = PONG_AREA_Y + ((PONG_AREA_H/2 - paddle.rect.height/2));
+    memset(bolas, 0, sizeof(bolas));
+    memset(antiviruses, 0, sizeof(antiviruses));
+    num_bolas = 1;
+    bolas[0].pos     = (Vector2){
+        paddle.rect.x + paddle.rect.width + 6*SC,
+        paddle.rect.y + paddle.rect.height/2 - BALL_SIZE*SC/2
+    };
+    bolas[0].vel     = (Vector2){ 0, 0 };
+    bolas[0].lancada = false;
+    bolas[0].ativa   = true;
+    bolas[0].angle = 0.0f;
+    bolas[0].angularSpeed = 40.0f;
+    bolas[0].pulseOffset = (float)GetRandomValue(0, 6283)/1000.0f;
+    for (int i=1; i<MAX_BOLAS; i++) {
+        bolas[i].ativa = false;
+        bolas[i].lancada = true;
+        bolas[i].angle = 0.0f;
+        bolas[i].angularSpeed = 40.0f;
+        bolas[i].pulseOffset = (float)GetRandomValue(0, 6283)/1000.0f;
+    }
+    float bloco_base_w = 24.0f * SC;
+    float bloco_base_h = bloco_base_w;
+    float bloco_w = bloco_base_w * 1.5f;
+    float bloco_h = bloco_base_h * 1.5f;
+    float altura_util = (float)(PONG_AREA_H);
+    int max_linhas_possivel = (int)(altura_util / bloco_h);
+    if (max_linhas_possivel < 1) max_linhas_possivel = 1;
+    linhas_ativas = max_linhas_possivel;
+    float largura_total_nova = NUM_COLUNAS * bloco_w;
+    float blocos_right_x = PONG_AREA_X + PONG_AREA_W - (BLOCOS_RIGHT_MARGIN + BLOCOS_RIGHT_MARGIN_EXTRA);
+    float esquerda = blocos_right_x - largura_total_nova;
+    float topo = PONG_AREA_Y;
+    for(int cx=0; cx<NUM_COLUNAS; ++cx) {
+        for(int ly=0; ly<linhas_ativas; ++ly) {
+            float x = esquerda + cx * bloco_w;
+            float y = topo + ly * bloco_h;
+            blocos[cx][ly].rect.x = (int)x;
+            blocos[cx][ly].rect.y = (int)y;
+            if(cx == NUM_COLUNAS-1)
+                blocos[cx][ly].rect.width = (int)(esquerda + largura_total_nova - x + 0.5f);
+            else
+                blocos[cx][ly].rect.width = (int)(bloco_w + 0.5f);
+            if(ly == linhas_ativas-1)
+                blocos[cx][ly].rect.height = (int)(topo + altura_util - y + 0.5f);
+            else
+                blocos[cx][ly].rect.height = (int)(bloco_h + 0.5f);
+            blocos[cx][ly].ativa = true;
+            blocos[cx][ly].amarelo = false;
+            blocos[cx][ly].exploding = false;
+            blocos[cx][ly].explosionTimer = 0.0f;
+            blocos[cx][ly].explosionFrame = 0;
+            blocos[cx][ly].destroyed = false;
+        }
+    }
+    for(int cx=0; cx<NUM_COLUNAS; ++cx) {
+        for(int ly=linhas_ativas; ly<MAX_LINHAS; ++ly) {
+            blocos[cx][ly].ativa = false;
+            blocos[cx][ly].amarelo = false;
+            blocos[cx][ly].exploding = false;
+            blocos[cx][ly].explosionTimer = 0.0f;
+            blocos[cx][ly].explosionFrame = 0;
+            blocos[cx][ly].destroyed = false;
+        }
+    }
+    int totalBlocos = NUM_COLUNAS * linhas_ativas;
+    int totalAmarelos = (int)(totalBlocos * 0.3f);
+    int countAmarelo = 0;
+    while (countAmarelo < totalAmarelos) {
+        int col = GetRandomValue(0, NUM_COLUNAS-1);
+        int lin = GetRandomValue(0, linhas_ativas-1);
+        if (!blocos[col][lin].amarelo) {
+            blocos[col][lin].amarelo = true;
+            countAmarelo++;
+        }
+    }
+    blocos_ativos = totalBlocos;
+    pong_vitoria = false;
+    pong_derrota = false;
+    pong_mostrabotao = false;
 }
+
 
 void Update_Desafio_03(void)
 {
-    float delta = GetFrameTime();
+    float dt = GetFrameTime();
+    Vector2 mouse = GetMousePosition();
 
+    // == GEMINI ICONE E ANIMAÇÂO
     float geminiX = 49, geminiY = 67, geminiScale = 0.1f;
     float geminiW = sprGemini.width * geminiScale;
     float geminiH = sprGemini.height * geminiScale;
     AtualizaTamanhoGeminiBox();
     float rx = geminiX + geminiW - 20.0f;
     float ry = geminiY + (geminiH - geminiRectH)/2.0f;
-    Rectangle geminiLogoRec = {geminiX, geminiY, geminiW, geminiH};
-    Rectangle geminiRectRec = {rx, ry, geminiRectW, geminiRectH};
+    Rectangle geminiLogoRec = { geminiX, geminiY, geminiW, geminiH };
+    Rectangle geminiRectRec = { rx, ry, geminiRectW, geminiRectH };
     Vector2 mouseGem = GetMousePosition();
     bool mouseOverLogo = CheckCollisionPointRec(mouseGem, geminiLogoRec);
     bool mouseOverRect = CheckCollisionPointRec(mouseGem, geminiRectRec);
     geminiMouseOver = mouseOverLogo || mouseOverRect;
-    
     float dir = geminiMouseOver ? 1.0f : -1.0f;
-    geminiRectAnim += dir * geminiAnimSpeed * delta;
+    geminiRectAnim += dir * geminiAnimSpeed * dt;
     if (geminiRectAnim > 1.0f) geminiRectAnim = 1.0f;
     if (geminiRectAnim < 0.0f) geminiRectAnim = 0.0f;
-    if ((mouseOverLogo || mouseOverRect) && IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
-        if (!geminiHelpClicked && !pergunta2.timer_explodiu && !pergunta2.respondeu) {
+    if ((mouseOverLogo || mouseOverRect) && IsMouseButtonPressed(MOUSE_LEFT_BUTTON))
+    {
+        if (!geminiHelpClicked) {
             geminiHelpClicked = true;
             AtualizaTamanhoGeminiBox();
             geminiRectAnim = 1.0f;
-            pergunta2.opcoes[0].desabilitada = true;
-            pergunta2.opcoes[3].desabilitada = true;
+        }
+    }
+    // == /GEMINI
 
-            if (pergunta2.opcoes[selectedOption].desabilitada) {
-                for (int i = 1; i < pergunta2.num_opcoes; i++)
-                    if (!pergunta2.opcoes[i].desabilitada) {
-                        selectedOption = i;
-                        break;
+    if (preFalaInicial)
+    {
+        UpdateTypeWriter(&writer, dt, IsKeyPressed(KEY_SPACE));
+        // Só ENTER avança! Mouse não!
+        if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_KP_ENTER))
+        {
+            preFalaInicial = false;
+            strcpy(fala_exibida, FALA_NORMAL_03);
+            InitTypeWriter(&writer, fala_exibida, 25.0f);
+            cronometro_elapsed = 0.0f;
+        }
+        return;
+    }
+    float miny = PONG_AREA_Y;
+    float maxy = PONG_AREA_Y + PONG_AREA_H - paddle.rect.height;
+    paddle.rect.y = mouse.y - paddle.rect.height/2;
+    if (paddle.rect.y < miny) paddle.rect.y = miny;
+    if (paddle.rect.y > maxy) paddle.rect.y = maxy;
+    if (fadeout_ativo) {
+        fadeout_time += dt;
+        if (fadeout_time >= FADEOUT_DURACAO) {
+            SetD03Result(&playerStats, pong_vitoria, 0);
+            fase_concluida = true;
+        }
+        return;
+    }
+    if (pong_vitoria || pong_derrota) {
+        respostaShowTimer += dt;
+        if (respostaShowTimer > RESPOSTA_MOSTRA_SEG) pong_mostrabotao = true;
+        if (pong_mostrabotao) {
+            Vector2 mpos = GetMousePosition();
+            float btnScale = 0.9f + 0.07f*sinf(GetTime()*3.0f);
+            float btnW = sprEnterButton.width * btnScale;
+            float btnH = sprEnterButton.height * btnScale;
+            float btnX = GetScreenWidth()/2 + 120 - btnW/2;
+            float btnY = GetScreenHeight()/2 - 130;
+            Rectangle btnB = {btnX, btnY, btnW, btnH};
+            if((CheckCollisionPointRec(mpos, btnB) && IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) || IsKeyPressed(KEY_ENTER)) {
+                fadeout_ativo = true;
+                fadeout_time = 0.0f;
+            }
+        }
+        UpdateTypeWriter(&writer, dt, IsKeyPressed(KEY_SPACE));
+        if(!podeAvancar && writer.done) podeAvancar = true;
+        return;
+    }
+    if (cronometro_iniciado) {
+        cronometro_elapsed += dt;
+        cronometro = FASE3_CHRONO_MAX - cronometro_elapsed;
+        if(cronometro <= 0.0f && !pong_derrota && !pong_vitoria) {
+            cronometro = 0.0f;
+            pong_derrota = true;
+            const char* name = gSelectedCharacterName;
+            strcpy(fala_exibida, FalaPorResultado(name, false));
+            InitTypeWriter(&writer, fala_exibida, 25.0f);
+            respostaShowTimer = 0.0f;
+            return;
+        }
+    }
+    for(int cx=0; cx<NUM_COLUNAS; ++cx) {
+        for(int ly=0; ly<linhas_ativas; ++ly) {
+            BlocoVermelho* blk = &blocos[cx][ly];
+            if(blk->exploding && blk->explosionFrame < EXPLO_TOTAL_FRAMES) {
+                blk->explosionTimer += dt;
+                if(blk->explosionTimer >= EXPLO_FRAME_DUR) {
+                    blk->explosionTimer -= EXPLO_FRAME_DUR;
+                    blk->explosionFrame++;
+                    if(blk->explosionFrame >= EXPLO_TOTAL_FRAMES) {
+                        blk->exploding = false;
+                        blk->explosionFrame = EXPLO_TOTAL_FRAMES;
                     }
+                }
             }
         }
     }
-
-    UpdateDialogueQuestion(&pergunta2, delta);
-    int baseWidth = 600, larguraStep = 85, rectHeight = 78, spacing = 28, offsetY = 295, offsetX = 35;
-    Vector2 mouse = GetMousePosition();
-
-    if (!pergunta2.respondeu && pergunta2.timer_explodiu)
+    for (int i = 0; i < num_bolas; ++i)
     {
-        pergunta2.respondeu              = true;
-        pergunta2.opcao_selecionada_usuario = 0;
-        respostaShowTimer                = 0.0f;
-        pergunta2.timer_ativo            = false;
-
-        for (int i = 0; i < pergunta2.num_opcoes; ++i)
-            pergunta2.opcoes[i].desabilitada = true;
-
+        if (!bolas[i].ativa) continue;
+        if (!bolas[i].lancada)
+        {
+            bolas[i].pos.x = paddle.rect.x + paddle.rect.width + 6*SC;
+            bolas[i].pos.y = paddle.rect.y + paddle.rect.height/2 - BALL_SIZE*SC/2;
+            if (i==0 && IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
+                float ang = (float)(GetRandomValue(-20,20)*PI/180.0f);
+                float vel = BALL_SPEED * SC;
+                bolas[i].vel.x = -fabsf(vel * cosf(ang));
+                bolas[i].vel.y = BALL_SPEED * SC * sinf(ang);
+                bolas[i].lancada = true;
+                if (!cronometro_iniciado) {
+                    cronometro_iniciado = true;
+                    cronometro_elapsed = 0.0f;
+                }
+            }
+        }
+    }
+    for (int b=0; b<num_bolas; b++)
+    {
+        if (!bolas[b].ativa) continue;
+        if (!bolas[b].lancada) continue;
+        bolas[b].pos.x += bolas[b].vel.x * dt;
+        bolas[b].pos.y += bolas[b].vel.y * dt;
+        float minSpeed = 40.0f*SC, decaimento = 0.96f;
+        bolas[b].angle += bolas[b].angularSpeed * dt;
+        while (bolas[b].angle > 360.0f) bolas[b].angle -= 360.0f;
+        while (bolas[b].angle < 0.0f)   bolas[b].angle += 360.0f;
+        if (bolas[b].angularSpeed > minSpeed)
+            bolas[b].angularSpeed *= decaimento;
+        if (bolas[b].angularSpeed < minSpeed)
+            bolas[b].angularSpeed = minSpeed;
+        if (bolas[b].pos.y < PONG_AREA_Y) {
+            bolas[b].pos.y = PONG_AREA_Y;
+            bolas[b].vel.y *= -1.0f;
+            bolas[b].angularSpeed += 130.0f;
+            if (bolas[b].angularSpeed > 360.0f) bolas[b].angularSpeed = 360.0f;
+        }
+        if (bolas[b].pos.y + BALL_SIZE*SC > PONG_AREA_Y + PONG_AREA_H) {
+            bolas[b].pos.y = PONG_AREA_Y + PONG_AREA_H - BALL_SIZE*SC;
+            bolas[b].vel.y *= -1.0f;
+            bolas[b].angularSpeed += 130.0f;
+            if (bolas[b].angularSpeed > 360.0f) bolas[b].angularSpeed = 360.0f;
+        }
+        if (bolas[b].pos.x < PONG_AREA_X) {
+            int vivos = 0;
+            for (int k=0; k<num_bolas; k++)
+                if (k != b && bolas[k].ativa) vivos++;
+            if (vivos == 0) {
+                bolas[b].ativa = false;
+                pong_derrota = true;
+                const char* name = gSelectedCharacterName;
+                strcpy(fala_exibida, FalaPorResultado(name, false));
+                InitTypeWriter(&writer, fala_exibida, 25.5f);
+                respostaShowTimer = 0.0f;
+                return;
+            } else {
+                bolas[b].ativa = false;
+                continue;
+            }
+        }
+        if (bolas[b].pos.x > PONG_AREA_X + PONG_AREA_W) {
+            if (!pong_vitoria) {
+                pong_vitoria = true;
+                const char* name = gSelectedCharacterName;
+                strcpy(fala_exibida, FalaPorResultado(name, true));
+                InitTypeWriter(&writer, fala_exibida, 25.0f);
+                respostaShowTimer = 0.0f;
+                return;
+            }
+        }
+        Rectangle bolaR = {bolas[b].pos.x, bolas[b].pos.y, BALL_SIZE*SC, BALL_SIZE*SC};
+        if (bolas[b].vel.x < 0 && CheckCollisionRecs(bolaR, paddle.rect)) {
+            bolas[b].pos.x = paddle.rect.x + paddle.rect.width + 1.5f*SC;
+            bolas[b].vel.x *= -1.0f;
+            float interY = (bolas[b].pos.y + BALL_SIZE*SC/2) - (paddle.rect.y + paddle.rect.height/2);
+            bolas[b].vel.y += interY * 2.35f;
+            float v = sqrtf(bolas[b].vel.x*bolas[b].vel.x + bolas[b].vel.y*bolas[b].vel.y);
+            if (v > BALL_MAX_SPEED*SC) {
+                bolas[b].vel.x *= BALL_MAX_SPEED * SC / v;
+                bolas[b].vel.y *= BALL_MAX_SPEED * SC / v;
+            }
+            bolas[b].angularSpeed += 130.0f;
+            if (bolas[b].angularSpeed > 360.0f) bolas[b].angularSpeed = 360.0f;
+        }
+        for(int cx=0; cx<NUM_COLUNAS; ++cx) {
+            for(int ly=0; ly<linhas_ativas; ++ly) {
+                BlocoVermelho* blk = &blocos[cx][ly];
+                if (blk->ativa && !blk->destroyed && !blk->exploding && CheckCollisionRecs(bolaR, blk->rect)) {
+                    float old_vx = bolas[b].vel.x, old_vy = bolas[b].vel.y;
+                    Rectangle r = blk->rect;
+                    bool colidiuPeloX = (bolas[b].pos.x+BALL_SIZE*SC-3 < r.x || bolas[b].pos.x > r.x+r.width-3);
+                    if (blk->amarelo) {
+                        int added = 0;
+                        for (int n=0; n<MAX_BOLAS && num_bolas < MAX_BOLAS && added < 1; n++) {
+                            if (!bolas[n].ativa) {
+                                bolas[n].ativa = true;
+                                bolas[n].lancada = true;
+                                bolas[n].pos = bolas[b].pos;
+                                bolas[n].angle = bolas[b].angle;
+                                bolas[n].angularSpeed = bolas[b].angularSpeed;
+                                bolas[n].pulseOffset = (float)GetRandomValue(0, 6283)/1000.0f;
+                                float a = (float)(GetRandomValue(-60,60)*PI/180.0f);
+                                float base_angle = atan2f(bolas[b].vel.y, bolas[b].vel.x);
+                                float new_angle = base_angle + a;
+                                bolas[n].vel.x = -fabsf(BALL_SPEED * SC * cosf(new_angle));
+                                bolas[n].vel.y = BALL_SPEED * SC * sinf(new_angle);
+                                ++added;
+                                if (n >= num_bolas) num_bolas = n+1;
+                            }
+                        }
+                    }
+                    blk->destroyed = true;
+                    blk->exploding = true;
+                    blk->explosionTimer = 0.0f;
+                    blk->explosionFrame = 0;
+                    blk->ativa = false;
+                    blocos_ativos--;
+                    if (GetRandomValue(1, 100) <= 25) {
+                        for(int a=0; a<MAX_ANTIVIRUS; ++a) {
+                            if (!antiviruses[a].ativa) {
+                                antiviruses[a].ativa = true;
+                                antiviruses[a].pos.x = r.x + r.width/2.0f - (BALL_SIZE*SC)/2.0f;
+                                antiviruses[a].pos.y = r.y + r.height/2.0f - (BALL_SIZE*SC)/2.0f;
+                                antiviruses[a].rect.x = antiviruses[a].pos.x;
+                                antiviruses[a].rect.y = antiviruses[a].pos.y;
+                                antiviruses[a].rect.width = BALL_SIZE*SC;
+                                antiviruses[a].rect.height= BALL_SIZE*SC;
+                                float boost = 1.8f;
+                                float vx, vy;
+                                if (colidiuPeloX) {
+                                    vx = old_vx * boost;
+                                    vy = -old_vy * boost;
+                                } else {
+                                    vx = -old_vx * boost;
+                                    vy = old_vy * boost;
+                                }
+                                antiviruses[a].vel.x = -fabsf(vx);
+                                antiviruses[a].vel.y = vy;
+                                if (fabsf(antiviruses[a].vel.x) < 40.0f)
+                                    antiviruses[a].vel.x = -40.0f;
+                                if (fabsf(antiviruses[a].vel.y) < 10.0f)
+                                    antiviruses[a].vel.y = 0;
+                                break;
+                            }
+                        }
+                    }
+                    if(colidiuPeloX)
+                        bolas[b].vel.x *= -1.0f;
+                    else
+                        bolas[b].vel.y *= -1.0f;
+                    bolas[b].angularSpeed += 130.0f;
+                    if (bolas[b].angularSpeed > 360.0f) bolas[b].angularSpeed = 360.0f;
+                    goto cond2;
+                }
+            }
+        }
+        cond2: ;
+    }
+    for (int a=0; a<MAX_ANTIVIRUS; a++){
+        if (!antiviruses[a].ativa) continue;
+        antiviruses[a].pos.x += antiviruses[a].vel.x * dt;
+        antiviruses[a].pos.y += antiviruses[a].vel.y * dt;
+        antiviruses[a].rect.x = antiviruses[a].pos.x;
+        antiviruses[a].rect.y = antiviruses[a].pos.y;
+        if (antiviruses[a].pos.y < PONG_AREA_Y) {
+            antiviruses[a].pos.y = PONG_AREA_Y;
+            antiviruses[a].vel.y *= -1.0f;
+        }
+        if (antiviruses[a].pos.y + antiviruses[a].rect.height > PONG_AREA_Y + PONG_AREA_H) {
+            antiviruses[a].pos.y = PONG_AREA_Y + PONG_AREA_H - antiviruses[a].rect.height;
+            antiviruses[a].vel.y *= -1.0f;
+        }
+        if (antiviruses[a].pos.x + antiviruses[a].rect.width < PONG_AREA_X) {
+            antiviruses[a].ativa = false;
+        }
+        if (CheckCollisionRecs(antiviruses[a].rect, paddle.rect)) {
+            antiviruses[a].ativa = false;
+            pong_derrota = true;
+            const char* name = gSelectedCharacterName;
+            strcpy(fala_exibida, FalaPorResultado(name, false));
+            InitTypeWriter(&writer, fala_exibida, 25.5f);
+            respostaShowTimer = 0.0f;
+            return;
+        }
+    }
+    bool tem_bola = false;
+    for (int k=0; k<num_bolas; ++k)
+        if (bolas[k].ativa) tem_bola=true;
+    if (!tem_bola){
+        pong_derrota = true;
         const char* name = gSelectedCharacterName;
         strcpy(fala_exibida, FalaPorResultado(name, false));
-        InitTypeWriter(&writer, fala_exibida, 26.5f);
-        podeAvancar = false;
+        InitTypeWriter(&writer, fala_exibida, 25.5f);
+        respostaShowTimer = 0.0f;
+        return;
     }
-
-    if (!pergunta2.respondeu && !pergunta2.timer_explodiu) {
-        for (int i = 0; i < pergunta2.num_opcoes; i++) {
-            int rectWidth = baseWidth + i * larguraStep;
-            int y = offsetY + i * (rectHeight + spacing);
-            int x = GetScreenWidth() - rectWidth - offsetX;
-            Rectangle rec = {x, y, rectWidth, rectHeight};
-            if (!pergunta2.opcoes[i].desabilitada &&
-                CheckCollisionPointRec(mouse, rec)) {
-                //selectedOption = i;
-            }
-        }
-        if (IsKeyPressed(KEY_DOWN)) DialogueNavigateOptions(&pergunta2, &selectedOption, +1);
-        if (IsKeyPressed(KEY_UP))   DialogueNavigateOptions(&pergunta2, &selectedOption, -1);
-        int clicada = GetDialogueOptionClick(&pergunta2, 35, 295, 600, 78, 28, 85);
-        if (!pergunta2.opcoes[selectedOption].desabilitada &&
-            (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_KP_ENTER)))
-            clicada = selectedOption;
-        if (clicada != -1) {
-            pergunta2.opcao_selecionada_usuario = clicada;
-            pergunta2.respondeu = true;
-            respostaShowTimer = 0.0f;
-            pergunta2.timer_ativo = false;
-            for (int i = 0; i < pergunta2.num_opcoes; ++i)
-                pergunta2.opcoes[i].desabilitada = true;
-            const char* name = gSelectedCharacterName;
-            bool acertou = pergunta2.opcoes[clicada].correta;
-            strcpy(fala_exibida, FalaPorResultado(name, acertou));
-            InitTypeWriter(&writer, fala_exibida, 26.5f);
-            podeAvancar = false;
-        }
-    }
-    UpdateTypeWriter(&writer, delta, IsKeyPressed(KEY_SPACE));
-    if (!podeAvancar && writer.done) podeAvancar = true;
-    if (pergunta2.respondeu) respostaShowTimer += delta;
-    if (podeAvancar && (respostaShowTimer > RESPOSTA_MOSTRA_SEG)) {
-        float pulse = 0.07f * sinf(GetTime() * 3.0f);
-        float btnScaleBase = 0.85f;
-        float btnScale = btnScaleBase + pulse;
-        float btnW = sprEnterButton.width * btnScale;
-        float btnH = sprEnterButton.height * btnScale;
-        float btnX = GetScreenWidth()/2 - btnW/2 + 120;
-        float btnY = GetScreenHeight()/2 - 150;
-        Rectangle btnBounds = {btnX, btnY, btnW, btnH};
-        Vector2 mouse = GetMousePosition();
-
-        if (!fase2_fazendo_fadeout) {
-            if (CheckCollisionPointRec(mouse, btnBounds) && IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) {
-                fase2_fazendo_fadeout = true;
-                fase2_fadeout_time = 0.0f;
-            }
-            if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_KP_ENTER)) {
-                fase2_fazendo_fadeout = true;
-                fase2_fadeout_time = 0.0f;
-            }
-        }
-
-        if (fase2_fazendo_fadeout) {
-            fase2_fadeout_time += delta;
-            if (fase2_fadeout_time >= FASE2_FADEOUT_DURACAO) {
-
-                bool venceu = pergunta2.opcoes[pergunta2.opcao_selecionada_usuario].correta;
-                int tempoGasto = (int)(pergunta2.timer_total - pergunta2.timer_restante);
-                SetD03Result(&playerStats, venceu, tempoGasto);
-
-                fase_concluida = true;
-            }
-        }
-    }
+    UpdateTypeWriter(&writer, dt, IsKeyPressed(KEY_SPACE));
+    if(!podeAvancar && writer.done) podeAvancar = true;
 }
-
 void Draw_Desafio_03(void)
 {
     static float blinkTimer = 0.0f;
@@ -368,6 +634,154 @@ void Draw_Desafio_03(void)
     BeginDrawing();
     ClearBackground(RAYWHITE);
     DrawTextureEx(fundo, (Vector2){0,0}, 0.0f, (float)GetScreenWidth() / fundo.width, RAYWHITE);
+    DrawTexturePro(bgJogo,
+        (Rectangle){ 0, 0, bgJogo.width, bgJogo.height },
+        (Rectangle){ PONG_AREA_X, PONG_AREA_Y, PONG_AREA_W, PONG_AREA_H },
+        (Vector2){ 0, 0 }, 0.0f, WHITE);
+    if (preFalaInicial)
+    {
+        int boxX = 60;
+        int marginBottom = 220;
+        int boxY = GetScreenHeight() - marginBottom;
+        int boxWidth = GetScreenWidth() - 120;
+        int boxHeight = 130;
+        int imgW = 1000;
+        int imgH = pergunta_img.height - 130;
+        int imgX = boxX, imgY = boxY - imgH;
+        DrawTexturePro(pergunta_img, (Rectangle){0,0,pergunta_img.width, pergunta_img.height},
+            (Rectangle){imgX, imgY, imgW, imgH}, (Vector2){0,0}, 0, WHITE);
+        // --- Exibir nome personagem igual desafio 01 ---
+        const char* nome_personagem = (gSelectedCharacterName[0] == '\0') ? "???" : gSelectedCharacterName;
+        DrawText(nome_personagem, imgX + 10, imgY + imgH - 30, 30, WHITE);
+        // --- Sprite e posição igual desafio 01 ---
+        CharacterSpriteResult ch = GetCharacterSprite(gSelectedCharacterName, false, false);
+        float tw2 = ch.sprite->width * ch.scale, th = ch.sprite->height * ch.scale;
+        Vector2 pos;
+        pos.x = imgX - 330 + (imgW - tw2)/2.0f;
+        pos.y = imgY - th + 210;
+        if (strcmp(gSelectedCharacterName,"Jade") == 0)
+            pos.x += 100 + ch.carlosExtraOffset;
+        else if (strcmp(gSelectedCharacterName,"Levi") == 0)
+            pos.x += ch.mamedeExtraOffset;
+        DrawTextureEx(*ch.sprite, pos, 0, ch.scale, WHITE);
+        int borderRadius = boxHeight/2;
+        DrawRectangle(boxX, boxY, boxWidth-borderRadius, boxHeight, (Color){20,20,20,220});
+        DrawCircle(boxX+boxWidth-borderRadius, boxY+borderRadius, borderRadius, (Color){20,20,20,220});
+        if (writer.drawnChars > 0) {
+            char txtbuf[512];
+            strncpy(txtbuf, fala_exibida, writer.drawnChars);
+            txtbuf[writer.drawnChars] = '\0';
+            DrawText(txtbuf, boxX+20, boxY+30, 28, WHITE);
+        }
+        if (sprEnterButton.id) {
+            float pulse = 0.07f * sinf(GetTime() * 3.0f);
+            float btnScaleBase = 0.85f;
+            float btnScale = btnScaleBase + pulse;
+            float btnW = sprEnterButton.width * btnScale;
+            float btnH = sprEnterButton.height * btnScale;
+            float btnX = GetScreenWidth()/2 - btnW/2 + 120;
+            float btnY = GetScreenHeight()/2 - 150;
+            Color sombra = (Color){0,0,0,90};
+            DrawRectangleRounded((Rectangle){btnX+8,btnY+8,btnW,btnH},0.25f,10,sombra);
+            Color brilho = (pulse > 0.04f) ? (Color){255,255,255,75} : WHITE;
+            DrawTextureEx(sprEnterButton, (Vector2){btnX,btnY}, 0.0f, btnScale, brilho);
+        }
+
+        // == GEMINI DRAW (sempre no topo, igual desafio_01)
+        {
+            float geminiX = 49, geminiY = 67, geminiScale = 0.1f;
+            float geminiW = sprGemini.width * geminiScale;
+            float geminiH = sprGemini.height * geminiScale;
+            const char* gemini_msg = !geminiHelpClicked ? gemini_help_msg_default : gemini_help_msg_ajuda;
+            int txtSize = 20;
+            float rx = geminiX + geminiW - 20.0f;
+            float ry = geminiY + (geminiH - geminiRectH)/2.0f;
+            float animW = geminiRectW * geminiRectAnim;
+            Color logoCol = geminiMouseOver ? (Color){ 18, 60, 32, 255 } : (Color){ 26, 110, 51, 255 };
+            if (geminiRectAnim > 0.01f) 
+            {
+                Color rectCol = (Color){ 15, 42, 26, (unsigned char)( 210 * geminiRectAnim ) };
+                float round = 0.33f;
+                DrawRectangleRounded((Rectangle){ rx, ry, animW, geminiRectH }, round, 12, rectCol);
+                if (geminiRectAnim > 0.05f) {
+                    if (animW > geminiTextWidth + 36*2 - 4)
+                        DrawText(gemini_msg, rx + 36, ry + geminiRectH/2 - txtSize/2, txtSize, WHITE);
+                }
+            }
+            DrawTextureEx(sprGemini, (Vector2){geminiX, geminiY}, 0.0f, geminiScale, logoCol);
+        }
+        // == /GEMINI
+
+        EndDrawing();
+        return;
+    }
+    BeginScissorMode(PONG_AREA_X, PONG_AREA_Y, PONG_AREA_W, PONG_AREA_H);
+    for(int cx=0; cx<NUM_COLUNAS; ++cx) {
+        for(int ly=0; ly<linhas_ativas; ++ly) {
+            BlocoVermelho* blk = &blocos[cx][ly];
+            if (blk->ativa && !blk->destroyed) {
+                Rectangle dest = blk->rect;
+                Rectangle source;
+                if (blk->amarelo) {
+                    source.x = 77;
+                    source.y = 373;
+                    source.width = 50;
+                    source.height = 50;
+                } else {
+                    source.x = 77;
+                    source.y = 149;
+                    source.width = 51;
+                    source.height = 50;
+                }
+                DrawTexturePro(texParede, source, dest, (Vector2){0,0}, 0, RAYWHITE);
+                if (blk->amarelo)
+                    DrawRectangleLinesEx(dest, 2, (Color){165,150,32,76});
+                else
+                    DrawRectangleLinesEx(dest, 1, (Color){130,12,12,38});
+            } else if (blk->exploding && blk->explosionFrame < EXPLO_TOTAL_FRAMES) {
+                const ExploFrame* exp = &explosionFrames[blk->explosionFrame];
+                Rectangle src;
+                src.x = -exp->x;
+                src.y = -exp->y;
+                src.width = exp->w;
+                src.height = exp->h;
+                Rectangle dst;
+                dst.width = exp->w * SC;
+                dst.height = exp->h * SC;
+                dst.x = blk->rect.x + blk->rect.width/2 - dst.width/2;
+                dst.y = blk->rect.y + blk->rect.height/2 - dst.height/2;
+                DrawTexturePro(exploTex, src, dst, (Vector2){0,0}, 0, WHITE);
+            }
+        }
+    }
+    if (sprBaseJogo.id > 0) {
+        Rectangle source = {0, 0, (float)sprBaseJogo.width, (float)sprBaseJogo.height};
+        Rectangle dest = paddle.rect;
+        DrawTexturePro(sprBaseJogo, source, dest, (Vector2){0,0}, 0, WHITE);
+    }
+    for (int j=0; j<num_bolas; j++)
+        if (bolas[j].ativa){
+            float t = GetTime();
+            float pulse = sinf(t * 1.2f + bolas[j].pulseOffset) * 0.05f;
+            float scale = 1.0f + pulse;
+            Rectangle dest = {
+                bolas[j].pos.x + BALL_SIZE*SC/2,
+                bolas[j].pos.y + BALL_SIZE*SC/2,
+                BALL_SIZE*SC * scale, BALL_SIZE*SC * scale };
+            Rectangle src = {0, 0, (float)sprVirus.width, (float)sprVirus.height};
+            DrawTexturePro(sprVirus, src, dest, (Vector2){BALL_SIZE*SC/2, BALL_SIZE*SC/2}, bolas[j].angle, WHITE);
+        }
+    for (int a=0; a<MAX_ANTIVIRUS; a++) {
+        if (antiviruses[a].ativa) {
+            Rectangle dest = antiviruses[a].rect;
+            Rectangle src = {0, 0, (float)sprAntiVirus.width, (float)sprAntiVirus.height};
+            if (sprAntiVirus.id > 0)
+                DrawTexturePro(sprAntiVirus, src, dest, (Vector2){0,0}, 0, WHITE);
+            else
+                DrawRectangleRec(dest, RED);
+        }
+    }
+    EndScissorMode();
     int boxX = 60;
     int marginBottom = 220;
     int boxY = GetScreenHeight() - marginBottom;
@@ -377,10 +791,26 @@ void Draw_Desafio_03(void)
     int imgH = pergunta_img.height - 130;
     int imgX = boxX;
     int imgY = boxY - imgH;
-    DrawTexturePro(pergunta_img, (Rectangle){0, 0, pergunta_img.width, pergunta_img.height},
-                   (Rectangle){imgX, imgY, imgW, imgH}, (Vector2){0, 0}, 0.0f, WHITE);
-    const char* name = gSelectedCharacterName;
-    DrawText((name && name[0]) ? name : "???", imgX + 10, imgY + imgH - 30, 30, WHITE);
+    DrawTexturePro(pergunta_img, (Rectangle){0,0,pergunta_img.width, pergunta_img.height},
+            (Rectangle){imgX, imgY, imgW, imgH}, (Vector2){0,0}, 0.0f, WHITE);
+    if(pong_vitoria || pong_derrota)
+    {
+        // --- Exibir nome igual desafio 01 ---
+        const char* nome_personagem = (gSelectedCharacterName[0] == '\0') ? "???" : gSelectedCharacterName;
+        DrawText(nome_personagem, imgX + 10, imgY + imgH - 30, 30, WHITE);
+        // --- Sprite igual desafio 01 ---
+        CharacterSpriteResult ch = GetCharacterSprite(gSelectedCharacterName, pong_vitoria, pong_derrota);
+        float tw2 = ch.sprite->width * ch.scale;
+        float th  = ch.sprite->height * ch.scale;
+        Vector2 pos;
+        pos.x = imgX - 330 + (imgW - tw2)/2.0f;
+        pos.y = imgY - th + 210;
+        if (strcmp(gSelectedCharacterName, "Jade") == 0)
+            pos.x += 100 + ch.carlosExtraOffset;
+        else if (strcmp(gSelectedCharacterName, "Levi") == 0)
+            pos.x += ch.mamedeExtraOffset;
+        DrawTextureEx(*ch.sprite, pos, 0, ch.scale, WHITE);
+    }
     int borderRadius = boxHeight / 2;
     DrawRectangle(boxX, boxY, boxWidth - borderRadius, boxHeight, (Color){20, 20, 20, 220});
     DrawCircle(boxX + boxWidth - borderRadius, boxY + borderRadius, borderRadius, (Color){20, 20, 20, 220});
@@ -390,127 +820,11 @@ void Draw_Desafio_03(void)
         txtbuf[writer.drawnChars] = '\0';
         DrawText(txtbuf, boxX + 20, boxY + 30, 28, WHITE);
     }
-    if (!pergunta2.respondeu || respostaShowTimer <= RESPOSTA_MOSTRA_SEG) {
-        DrawChronometer(pergunta2.timer_restante, pergunta2.timer_total, GetScreenWidth()-80, 80, 55);
-        int baseWidth = 600;
-        int larguraStep = 85;
-        int rectHeight = 78;
-        int spacing = 28;
-        int offsetY = 295;
-        int offsetX = 35;
-        int blinkWrong = -1;
-        int blinkCorrect = -1;
-        bool blink = false;
-        if (pergunta2.respondeu) {
-            blink = (((int)(blinkTimer * 5.0f) % 2) == 0);
-            if (pergunta2.opcoes[pergunta2.opcao_selecionada_usuario].correta) {
-                blinkCorrect = pergunta2.opcao_selecionada_usuario;
-            } else {
-                blinkWrong = pergunta2.opcao_selecionada_usuario;
-                for (int i = 0; i < pergunta2.num_opcoes; ++i)
-                    if (pergunta2.opcoes[i].correta) blinkCorrect = i;
-            }
-        }
-
-        int highlightOption = -1; 
-        Vector2 mousePos = GetMousePosition();
-
-        for (int i = 0; i < pergunta2.num_opcoes; i++) {
-            if (pergunta2.opcoes[i].desabilitada) continue;
-
-            int rectWidth = baseWidth + i * larguraStep;
-            int y  = offsetY + i * (rectHeight + spacing);
-            int x  = GetScreenWidth() - rectWidth - offsetX;
-            Rectangle rec = {x, y, rectWidth, rectHeight};
-
-            if (CheckCollisionPointRec(mousePos, rec)) {
-                highlightOption = i;
-                break;
-            }
-        }
-        DrawAllDialogueOptions(&pergunta2,
-                       highlightOption,
-                       offsetX, offsetY,
-                       baseWidth, rectHeight,
-                       spacing, larguraStep,
-                       blinkWrong, blink, blinkCorrect
-        );
-
-        float geminiX = 49, geminiY = 67, geminiScale = 0.1f;
-        float geminiW = sprGemini.width * geminiScale;
-        float geminiH = sprGemini.height * geminiScale;
-        const char* gemini_msg = !geminiHelpClicked ? gemini_help_msg_default : gemini_help_msg_ajuda;
-        int txtSize = 20;
-        float rx = geminiX + geminiW - 20.0f;
-        float ry = geminiY + (geminiH - geminiRectH)/2.0f;
-        float animW = geminiRectW * geminiRectAnim;
-        Color logoCol = geminiMouseOver ? (Color){ 18, 60, 32, 255 } : (Color){ 26, 110, 51, 255 };
-        if (geminiRectAnim > 0.01f) {
-            Color rectCol = (Color){ 15, 42, 26, (unsigned char)( 210 * geminiRectAnim ) };
-            float round = 0.33f;
-            DrawRectangleRounded((Rectangle){ rx, ry, animW, geminiRectH }, round, 12, rectCol);
-            if (geminiRectAnim > 0.05f) {
-                if (animW > geminiTextWidth + 2*GEMINI_PAD_X - 4) {
-                    DrawText(gemini_msg, rx + GEMINI_PAD_X, ry + geminiRectH/2 - txtSize/2, txtSize, WHITE);
-                }
-            }
-        }
-        DrawTextureEx(sprGemini, (Vector2){geminiX, geminiY}, 0.0f, geminiScale, logoCol);
-    }
-    Texture2D spr = sprJoao;
-    float scale = 0.6f;
-    int carlosExtraOffset = 0, mamedeExtraOffset = 0;
-    if(strcmp(name, "Dante") == 0) {
-        if(pergunta2.respondeu && pergunta2.opcoes[pergunta2.opcao_selecionada_usuario].correta) {
-            spr = sprMateus2; scale = 0.8f;
-        } else if(pergunta2.respondeu && pergunta2.opcao_selecionada_usuario != -1) {
-            spr = sprMateus3; scale = 0.8f;
-        } else {
-            spr = sprMateus; scale = 1.3f;
-        }
-    } else if(strcmp(name, "Alice") == 0) {
-        if(pergunta2.respondeu && pergunta2.opcoes[pergunta2.opcao_selecionada_usuario].correta) {
-            spr = sprJoao2; scale = 0.95f;
-        } else if(pergunta2.respondeu && pergunta2.opcao_selecionada_usuario != -1) {
-            spr = sprJoao3; scale = 0.95f;
-        } else {
-            spr = sprJoao; scale = 0.6f;
-        }
-    } else if(strcmp(name, "Jade") == 0) {
-        if(pergunta2.respondeu && pergunta2.opcoes[pergunta2.opcao_selecionada_usuario].correta) {
-            spr = sprCarlos2; scale = 1.02f; carlosExtraOffset = -70;
-        } else if(pergunta2.respondeu && pergunta2.opcao_selecionada_usuario != -1) {
-            spr = sprCarlos3; scale = 1.0f; carlosExtraOffset = -44;
-        } else {
-            spr = sprCarlos; scale = 0.56f; carlosExtraOffset = 0;
-        }
-    } else if(strcmp(name, "Levi") == 0) {
-        if(pergunta2.respondeu && pergunta2.opcoes[pergunta2.opcao_selecionada_usuario].correta) {
-            spr = sprMamede2; scale = 1.0f;
-        } else if(pergunta2.respondeu && pergunta2.opcao_selecionada_usuario != -1) {
-            spr = sprMamede3; scale = 1.0f;
-        } else {
-            spr = sprMamede; scale = 1.0f;
-        }
-    } else if(name[0]=='\0') {
-        spr = sprJoao; scale = 0.6f;
-    }
-    float tw2 = spr.width * scale;
-    float th  = spr.height * scale;
-    Vector2 pos;
-    pos.x = imgX - 330 + (imgW - tw2)/2.0f;
-    pos.y = imgY - th + 210;
-    if (strcmp(name, "Jade") == 0)
-        pos.x += 100 + carlosExtraOffset;
-    else if (strcmp(name, "Levi") == 0)
-        pos.x += mamedeExtraOffset;
-    DrawTextureEx(spr, pos, 0, scale, WHITE);
-
-    if (pergunta2.respondeu && !pergunta2.opcoes[pergunta2.opcao_selecionada_usuario].correta && pergunta2.opcao_selecionada_usuario != -1) {
+    if (pong_derrota) {
         int w = GetScreenWidth(), h = GetScreenHeight();
         int layers = 5, layerThick = 20;
         for (int i = 0; i < layers; i++) {
-            int thick = layerThick + i * layerThick;
+            int thick = layerThick + i*layerThick;
             int alpha = 38 - i*5;
             if (alpha < 6) alpha = 6;
             Color blurRed = (Color){255, 32, 32, alpha};
@@ -520,7 +834,7 @@ void Draw_Desafio_03(void)
             DrawRectangle(w-thick, 0, thick, h, blurRed);
         }
     }
-    if (pergunta2.respondeu && respostaShowTimer > RESPOSTA_MOSTRA_SEG) {
+    if (pong_mostrabotao) {
         float pulse = 0.07f * sinf(GetTime() * 5.0f);
         float btnScaleBase = 0.95f;
         float btnScale = btnScaleBase + pulse;
@@ -533,20 +847,44 @@ void Draw_Desafio_03(void)
         Color brilho = (pulse > 0.04f) ? (Color){255,255,255,75} : WHITE;
         DrawTextureEx(sprEnterButton, (Vector2){btnX, btnY}, 0.0f, btnScale, brilho);
     }
-    if(fase2_fazendo_fadeout) {
-        float perc = fase2_fadeout_time / FASE2_FADEOUT_DURACAO;
+    if (!pong_vitoria && !pong_derrota && !preFalaInicial && cronometro_iniciado) {
+        DrawChronometer(cronometro, FASE3_CHRONO_MAX, GetScreenWidth()-80, 80, 55);
+    }
+    if(fadeout_ativo) {
+        float perc = fadeout_time / FADEOUT_DURACAO;
         if (perc > 1.0f) perc = 1.0f;
         int alpha = (int)(255 * perc);
         DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), (Color){0,0,0, alpha});
     }
+
+    // == GEMINI DRAW (sempre no topo, igual desafio_01)
+    {
+        float geminiX = 49, geminiY = 67, geminiScale = 0.1f;
+        float geminiW = sprGemini.width * geminiScale;
+        float geminiH = sprGemini.height * geminiScale;
+        const char* gemini_msg = !geminiHelpClicked ? gemini_help_msg_default : gemini_help_msg_ajuda;
+        int txtSize = 20;
+        float rx = geminiX + geminiW - 20.0f;
+        float ry = geminiY + (geminiH - geminiRectH)/2.0f;
+        float animW = geminiRectW * geminiRectAnim;
+        Color logoCol = geminiMouseOver ? (Color){ 18, 60, 32, 255 } : (Color){ 26, 110, 51, 255 };
+        if (geminiRectAnim > 0.01f) 
+        {
+            Color rectCol = (Color){ 15, 42, 26, (unsigned char)( 210 * geminiRectAnim ) };
+            float round = 0.33f;
+            DrawRectangleRounded((Rectangle){ rx, ry, animW, geminiRectH }, round, 12, rectCol);
+            if (geminiRectAnim > 0.05f) {
+                if (animW > geminiTextWidth + 36*2 - 4)
+                    DrawText(gemini_msg, rx + 36, ry + geminiRectH/2 - txtSize/2, txtSize, WHITE);
+            }
+        }
+        DrawTextureEx(sprGemini, (Vector2){geminiX, geminiY}, 0.0f, geminiScale, logoCol);
+    }
+    // == /GEMINI
+
     EndDrawing();
 }
-
-bool Fase_Desafio_03_Concluida(void)
-{
-    return fase_concluida;
-}
-
+bool Fase_Desafio_03_Concluida(void) { return fase_concluida; }
 void Unload_Desafio_03(void)
 {
     UnloadTexture(fundo);
@@ -555,6 +893,13 @@ void Unload_Desafio_03(void)
     UnloadTexture(sprMateus);  UnloadTexture(sprMateus2);  UnloadTexture(sprMateus3);
     UnloadTexture(sprCarlos);  UnloadTexture(sprCarlos2);  UnloadTexture(sprCarlos3);
     UnloadTexture(sprMamede);  UnloadTexture(sprMamede2);  UnloadTexture(sprMamede3);
-    UnloadTexture(sprGemini);
     UnloadTexture(sprEnterButton);
+    UnloadTexture(texParede);
+    UnloadTexture(sprVirus);
+    UnloadTexture(sprBaseJogo);
+    UnloadTexture(bgJogo);
+    UnloadTexture(sprAntiVirus);
+    UnloadTexture(exploTex);
+    // == GEMINI unload
+    UnloadTexture(sprGemini);
 }
