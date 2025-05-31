@@ -31,7 +31,7 @@ typedef struct {
     int   aiOverallScore; 
     bool  isPassouSelecao;
     float notalGeral;
-    char  relatorioGeral[1024];
+    char  relatorioGeral[8192];
 } PlayerStats;
 
 typedef struct {
@@ -43,7 +43,7 @@ typedef struct {
 
 extern int  notasIA[MAX_PERGUNTAS];
 extern char relatoriosIA[MAX_PERGUNTAS][512];
-extern char relatorioGeralIA[1024];
+extern char relatorioGeralIA[8192];
 extern char gPlayerName[MAX_PLAYER_NAME];
 extern char gSelectedCharacterName[MAX_PLAYER_NAME];
 

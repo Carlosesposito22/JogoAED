@@ -8,7 +8,7 @@
 
 int  notasIA[MAX_PERGUNTAS]                  = {0};
 char relatoriosIA[MAX_PERGUNTAS][512]        = {0};
-char relatorioGeralIA[1024]                  = {0};
+char relatorioGeralIA[8192]                 = {0};
 char gPlayerName[MAX_PLAYER_NAME]            = {0};
 char gSelectedCharacterName[MAX_PLAYER_NAME] = "";
 
@@ -58,25 +58,42 @@ static void SetPlayerAndCharacter(PlayerStats *stats, const char *playerName, co
 
 static void GerarRelatorioGeralIA(char *relatorioGeral, size_t tamanho, bool aprovado)
 {
-    char prompt[4096];
+    char prompt[8192];
     snprintf(prompt, sizeof(prompt),
-        "Você é o agente Hank e seu papel é decidir se um candidato usará suas habilidades cibernéticas **para o bem ou para o mal**.\n\n"
+        /* --- CONTEXTO DO PERSONAGEM --------------------------------------------- */
+        "Voce e Hank, ex-agente de ciberseguranca e atual CEO da Firewall Corp. "
+        "Veterano, sarcastico e autoconfiante, Hank fala como quem ja viu de tudo: "
+        "elogia quando o candidato manda bem, critica sem rodeios quando pisa na bola, "
+        "e sempre deixa claro se enxerga intencao de fazer o BEM ou o MAL com suas habilidades.\n\n"
 
-        "⚠️  Diretrizes (NÃO seja excessivamente rigoroso):\n"
-        "• Os relatórios podem ser breves; não penalize pela falta de detalhes.\n"
-        "• Se não houver indícios claros de má conduta, presuma boa fé.\n"
-        "• Reserve críticas severas apenas quando houver evidência explícita de intenção maliciosa.\n\n"
+        /* --- DIRETRIZES (SEM SOAR COMO ROBO) ------------------------------------ */
+        "⚠️  Diretrizes (NAO seja excessivamente rigoroso):\n"
+        "• Escreva como Hank falaria, em frases naturais.\n"
+        "• O RELATORIO_GERAL deve ter **pelo menos 150 palavras**.\n"
+        "• Se nao houver indicios claros de ma conduta, presuma boa fe.\n"
+        "• Criticas severas so quando houver evidencia explicita de intencao maliciosa.\n"
+        "• QUANDO o candidato for aprovado, Hank deve **elogiar com entusiasmo**: use verbos fortes "
+        "(`mandou ver`, `arrasou`, `impecavel`, etc.), destaque varias qualidades concretas e deixe "
+        "clarissimo que o participante esta CONTRATADO.\n"
+        "• QUANDO o candidato for reprovado, Hank deve **apontar claramente os erros**: cite os deslizes "
+        "especificos (ex. 'vacilou na gestao de senhas', 'foi precipitado', 'ignorou boas praticas'), "
+        "explique por que esses problemas pesam na decisao e deixe evidente que ele NAO foi aprovado.\n\n"
 
-        "🔄 Restrições de formato:\n"
-        "• O relatório gerado deve conter apenas caracteres dentro do padrão ASCII (códigos de 0 a 127).\n"
-        "• O relatório deve ser uma única linha de texto, sem quebras de linha.\n\n"
+        /* --- RESTRICOES DE FORMATO --------------------------------------------- */
+        "🔄 Restricoes de formato:\n"
+        "• O RELATORIO_GERAL deve caber em **UMA** unica linha (sem quebras).\n\n"
 
-        "Com base nos relatórios individuais a seguir, gere um *RELATÓRIO_GERAL* coerente.\n"
-        "Critérios de síntese:\n"
-        "- Intenção Ética (Bem x Mal)\n"
+        /* --- INSTRUCAO DE SINTESE ---------------------------------------------- */
+        "Com base nos relatórios individuais a seguir, gere um *RELATORIO_GERAL* coerente.\n"
+        "IMPORTANTE: os QUATRO relatorios abaixo se referem ao MESMO candidato, analisado em momentos diferentes, "
+        "nao a quatro pessoas distintas.\n"
+        "Criterios de sintese:\n"
+        "- Intencao Etica (Bem x Mal)\n"
         "- Responsabilidade Profissional\n"
-        "- Gestão de Informações Sensíveis\n\n"
-        "Relatórios individuais:\n"
+        "- Gestao de Informacoes Sensiveis\n\n"
+
+        /* --- LISTA DE RELATORIOS ------------------------------------------------ */
+        "Relatorios individuais (mesmo candidato):\n"
     );
 
     for (int i = 0; i < 4; i++) {
@@ -90,7 +107,7 @@ static void GerarRelatorioGeralIA(char *relatorioGeral, size_t tamanho, bool apr
         "RELATORIO_GERAL=<relatório consolidado e objetivo>"
     );
 
-    char retorno[1024] = {0};
+    char retorno[8192] = {0};
     ObterRespostaGemini(prompt, retorno);
 
     const char *TAG = "RELATORIO_GERAL=";

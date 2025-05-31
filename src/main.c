@@ -120,7 +120,7 @@ int main(void)
     static bool transicao_proxy2_Initialized = false;
 
     // DEBUG DE SELEÇÃO DO NOME
-    strncpy(gSelectedCharacterName, "Levi", MAX_PLAYER_NAME);
+    strncpy(gSelectedCharacterName, "Dante", MAX_PLAYER_NAME);
     gSelectedCharacterName[MAX_PLAYER_NAME-1] = '\0';
     strncpy(gPlayerName, "Carlos Eduardo Esposito", MAX_PLAYER_NAME);
     gPlayerName[MAX_PLAYER_NAME-1] = '\0';

@@ -104,6 +104,16 @@ static bool deuBomPlayed = false;
 static Sound paperSound;
 static bool paperSoundPlayed = false;
 
+static bool podeFinalizar = false;
+static Texture2D sprEnterButton; 
+
+static void CarregaFonteManuscrito(void)
+{
+    static int latin1[224];
+    for (int i = 0; i < 224; i++) latin1[i] = 32 + i;
+    fonteEscritaAMao = LoadFontEx("src/fonts/Manuscrito.ttf", 26, latin1, 224);
+}
+
 static void DrawTextWrapped(Font font,
                             const char *text,
                             Rectangle rec,
@@ -259,10 +269,11 @@ void Init_FinalJogo(void)
     writtenInTheStars = LoadMusicStream("src/music/writtenInTheStars.mp3");
     surpriseSound = LoadSound("src/music/surprise.mp3");
     paperSound = LoadSound("src/music/paperSound.mp3");
-    fonteEscritaAMao = LoadFont("src/fonts/Manuscrito.ttf");
+    CarregaFonteManuscrito();
     resultadoFont = LoadFont("src/fonts/Schluber.ttf");
     booSound = LoadSound("src/sprites/revelation/boo.mp3");
     deuBomSound = LoadSound("src/sprites/revelation/deubom.mp3");
+    sprEnterButton = LoadTexture("src/sprites/enter_button.png");
     booPlayed = false;
     deuBomPlayed = false;
     PlayMusicStream(writtenInTheStars);
@@ -319,8 +330,7 @@ void Update_FinalJogo(void)
         return;
 
     UpdateTextAnimation();
-    if (IsKeyPressed(KEY_ENTER))
-    {
+    if (podeFinalizar && IsKeyPressed(KEY_ENTER)) {
         fase_concluida = true;
     }
     UpdateMusicStream(writtenInTheStars);
@@ -472,6 +482,12 @@ void Update_FinalJogo(void)
         {
             resultadoAnimProgress = 1.0f;
         }
+    }
+
+    if (!podeFinalizar &&
+        cadernetaAnimActive && cadernetaAnimProgress >= 1.0f &&
+        resultadoAnimActive  && resultadoAnimProgress  >= 1.0f) {
+        podeFinalizar = true;
     }
 }
 void Draw_FinalJogo(void)
@@ -674,6 +690,29 @@ void Draw_FinalJogo(void)
         );
     }
 
+    if (podeFinalizar)          // só depois de caderneta + resultado prontos
+    {
+        float pulse = 0.07f * sinf(GetTime() * 2.0f);   // mesmo efeito pulsante
+        float btnScaleBase = 0.7f;
+        float btnScale     = btnScaleBase + pulse;
+
+        float btnW = sprEnterButton.width  * btnScale;
+        float btnH = sprEnterButton.height * btnScale;
+
+        float btnX = 40.0f;                               // canto esquerdo
+        float btnY = GetScreenHeight() - btnH - 40.0f;    // canto inferior
+
+        Color sombra = (Color){0, 0, 0, 90};
+        DrawRectangleRounded((Rectangle){btnX + 6, btnY + 6, btnW, btnH},
+                            0.25f, 10, sombra);
+
+        Color brilho = (pulse > 0.04f)
+                    ? (Color){255, 255, 255, 75}
+                    : WHITE;
+        DrawTextureEx(sprEnterButton, (Vector2){btnX, btnY},
+                    0.0f, btnScale, brilho);
+    }
+
     EndDrawing();
 }
 bool Fase_FinalJogo_Concluida(void)
@@ -693,6 +732,7 @@ void Unload_FinalJogo(void)
     UnloadTexture(cybertechShield);
     StopMusicStream(writtenInTheStars);
     UnloadMusicStream(writtenInTheStars);
+    UnloadTexture(sprEnterButton);
     UnloadSound(surpriseSound);
     UnloadSound(congrats);
     UnloadSound(medal);
