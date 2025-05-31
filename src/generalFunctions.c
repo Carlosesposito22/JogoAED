@@ -162,3 +162,14 @@ void RaylibSleep(float seconds) {
         EndDrawing();
     }
 }
+
+bool DesafioPassou(int idx, const PlayerStats *ps)
+{
+    switch (idx) {
+        case 0:  return ps->isPassed_D01;
+        case 1:  return ps->isPassed_D02;
+        case 2:  return ps->isPassed_D03;
+        case 3:  return ps->isPassed_D04;
+        default: return true;
+    }
+}

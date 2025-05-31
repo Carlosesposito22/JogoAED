@@ -42,31 +42,51 @@ AppState PFP_Loading_Iterrogatorio;
 
 PlayerStats playerStats;
 
-typedef struct { const char *audio; const char *texto; } RoteiroHank;
 static const RoteiroHank roteiros[] = {
     {
         "src/music/fala_hank_desafio01.mp3",
         "Muito bem! Você mostrou reflexos afiados e domínio da situação. "
         "Conseguiu destruir os blocos certos sem ser pego pelos antivírus, "
         "o que demonstra atenção aos detalhes e controle sob pressão. "
-        "É exatamente esse tipo de sangue frio que precisamos por aqui. [ENTER]"
+        "É exatamente esse tipo de sangue frio que precisamos por aqui. [ENTER]",
+
+        "src/music/fala_hank_desafio01_derrota.mp3",
+        "Você perdeu o ritmo e deixou os antivírus dominarem o campo. "
+        "Um segundo de distração e todo o sistema vai pro espaço. "
+        "Se não mantém a cabeça fria num simples Pong, imagine sob um ataque real. "
+        "Recupere o foco e tente de novo. [ENTER]"
     },
     { 
         "src/music/fala_hank_desafio02.mp3",
         "Muito bem! Você demonstrou inteligência ao reconhecer rapidamente que o texto estava "
         "cifrado e perspicácia ao identificar a técnica correta para decifrá-lo. Essa habilidade "
-        "em lidar com criptografia é essencial para proteger a integridade dos dados. [ENTER]"
+        "em lidar com criptografia é essencial para proteger a integridade dos dados. [ENTER]",
+
+        "src/music/fala_hank_desafio02_derrota.mp3",
+        "Cifra de César e você tropeçou? Isso é criptografia nível jardim-de-infância. "
+        "Os dados continuam ilegíveis e o relógio não para. "
+        "Aqui dentro, falhar no básico custa caro. Estude o alfabeto e volte preparado. [ENTER]"
     },
     { 
         "src/music/fala_hank_desafio03.mp3",
         "Impressionante! Você conseguiu identificar rapidamente as prioridades do sistema "
         "e realocar os recursos com precisão, mantendo a calma mesmo sob pressão. "
-        "Certamente uma habilidade essencial para lidar com situações críticas. [ENTER]"
+        "Certamente uma habilidade essencial para lidar com situações críticas. [ENTER]",
+
+        "src/music/fala_hank_desafio03_derrota.mp3",
+        "Você sobrecarregou setores críticos e deixou serviços essenciais no escuro. "
+        "Resultado: pane geral e prejuízo milionário. "
+        "Priorizar recursos é arte, não chute. Refaça os cálculos antes queimar a infraestrutura inteira. [ENTER]"
     },
     { 
         "src/music/fala_hank_desafio04.mp3",
         "Muito bom! Você soube coletar os antivírus enquanto evitava os vírus, mostrando que entende "
-        "a importância de manter o sistema protegido. Essa postura preventiva é essencial [ENTER]"
+        "a importância de manter o sistema protegido. Essa postura preventiva é essencial [ENTER]",
+
+        "src/music/fala_hank_desafio04_derrota.mp3",
+        "Você tratou vírus como souvenir e esqueceu os antivírus no caminho. "
+        "Segurança não é roleta russa digital. "
+        "Volte quando souber diferenciar inimigo de aliado antes que todo o servidor exploda. [ENTER]"
     }
 };
 
@@ -425,7 +445,12 @@ int main(void)
         {
             if (!interrogatorio_Initialized)
             {
-                Init_Interrogatorio(perguntaAtual, roteiros[perguntaAtual].audio, roteiros[perguntaAtual].texto);
+                bool passou = DesafioPassou(perguntaAtual, &playerStats);
+                Init_Interrogatorio(
+                        perguntaAtual,
+                        passou ? roteiros[perguntaAtual].audioWin  : roteiros[perguntaAtual].audioLose,
+                        passou ? roteiros[perguntaAtual].textoWin  : roteiros[perguntaAtual].textoLose
+                );
                 interrogatorio_Initialized = true;
             }
             Update_Interrogatorio();

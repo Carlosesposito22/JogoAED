@@ -4,6 +4,7 @@
 #include <stdbool.h>
 #include "raylib.h"
 #include <string.h>
+#include "playerStats.h"
 
 typedef enum
 {
@@ -47,6 +48,13 @@ typedef struct {
     const char* text; int length; int drawnChars; float accum; float speed; bool done;
 } TypeEraser;
 
+typedef struct {
+    const char *audioWin;
+    const char *textoWin;
+    const char *audioLose;
+    const char *textoLose;
+} RoteiroHank;
+
 void InitTypeWriter(TypeWriter* tw, const char* text, float speed);
 void UpdateTypeWriter(TypeWriter* tw, float deltaTime, bool skip);
 void SkipTypeWriter(TypeWriter* tw);
@@ -58,5 +66,6 @@ void DrawChronometer(float timer_restante, float timer_total, int x, int y, int 
 void DrawDica(float posX, float posY, const char *text);
 void DrawPromptBox(Rectangle rec, Color base, const char *txt, bool pulse);
 void RaylibSleep(float seconds);
+bool DesafioPassou(int idx, const PlayerStats *ps);
 
 #endif
