@@ -61,6 +61,8 @@ static bool acertou_resposta = false;
 static bool mostrar_feedback = false;
 static float timer_feedback = 0.0f;
 static float respostaShowTimer = 0.0f;
+static Music musicaFase;
+static bool  audioAtivo = false;
 
 static void AtualizaTamanhoGeminiBox(void)
 {
@@ -124,6 +126,11 @@ void Init_Desafio_03(void)
     sprGemini     = LoadTexture("src/sprites/os/gemini.png");
     sprCadeadoFechadoCortado = LoadTexture("src/sprites/cadeado_fechado_cortado.png");
     sprCadeadoAbertoCortado  = LoadTexture("src/sprites/cadeado_aberto_cortado.png");
+    musicaFase = LoadMusicStream("src/music/desafio-03.mp3"); 
+    SetMusicVolume(musicaFase, 1.2f);
+    PlayMusicStream(musicaFase);
+    audioAtivo = true;
+
 
     strcpy(fala_exibida, FALA_NORMAL_01);
     InitTypeWriter(&writer, fala_exibida, 19.5f);
@@ -151,6 +158,8 @@ void Init_Desafio_03(void)
 void Update_Desafio_03(void)
 {
     float delta = GetFrameTime();
+    if (audioAtivo) UpdateMusicStream(musicaFase);
+
     float geminiX = 49, geminiY = 67, geminiScale = 0.1f;
     float geminiW = sprGemini.width * geminiScale;
     float geminiH = sprGemini.height * geminiScale;
@@ -579,4 +588,10 @@ void Unload_Desafio_03(void)
     UnloadTexture(sprGemini);
     UnloadTexture(sprCadeadoFechadoCortado);
     UnloadTexture(sprCadeadoAbertoCortado);
+
+    if (audioAtivo) {
+        StopMusicStream(musicaFase);
+        UnloadMusicStream(musicaFase);
+        audioAtivo = false;
+    }
 }

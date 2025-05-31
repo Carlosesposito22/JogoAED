@@ -70,6 +70,9 @@ static Texture2D heartSheet;
 static Rectangle heartFullRec;
 static Rectangle heartEmptyRec;
 
+static Music musicaFase;
+static bool  audioAtivo = false;
+
 static void AtualizaTamanhoGeminiBox(void)
 {
     float geminiScale = 0.1f;
@@ -142,6 +145,10 @@ void Init_Desafio_02(void)
     heartSheet = LoadTexture("src/sprites/bateria.png");
     heartFullRec = (Rectangle){930, 20, 149, 264};  // Coração cheio
     heartEmptyRec = (Rectangle){748, 21, 150, 263}; // Coração vazio
+    musicaFase = LoadMusicStream("src/music/desafio-02.mp3"); 
+    SetMusicVolume(musicaFase, 1.2f);
+    PlayMusicStream(musicaFase);
+    audioAtivo = true;
 
     strcpy(fala_exibida, FALA_NORMAL_02);
     InitTypeWriter(&writer, fala_exibida, 18.5f);
@@ -189,6 +196,8 @@ void Init_Desafio_02(void)
 void Update_Desafio_02(void)
 {
     float delta = GetFrameTime();
+
+    if (audioAtivo) UpdateMusicStream(musicaFase);
 
     if (faz_fadeout)
     {
@@ -789,4 +798,10 @@ void Unload_Desafio_02(void)
     UnloadTexture(sprEnterButton);
     UnloadTexture(sprGemini);
     UnloadTexture(heartSheet);
+
+    if (audioAtivo) {
+        StopMusicStream(musicaFase);
+        UnloadMusicStream(musicaFase);
+        audioAtivo = false;
+    }
 }

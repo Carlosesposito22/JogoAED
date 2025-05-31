@@ -115,6 +115,10 @@ static Paddle paddle;
 static bool pong_vitoria = false;
 static bool pong_derrota = false;
 static bool pong_mostrabotao = false;
+
+static Music musicaFase;
+static bool  audioAtivo = false;
+
 // --- ESCOLHA DE SPRITE IGUAL DESAFIO 01 ---
 typedef struct {
     Texture2D* sprite;
@@ -208,6 +212,10 @@ void Init_Desafio_01(void)
     bgJogo        = LoadTexture("src/sprites/bgJogo.png");
     sprAntiVirus  = LoadTexture("src/sprites/antiVirus.png");
     exploTex      = LoadTexture("src/sprites/explo.png");
+    musicaFase = LoadMusicStream("src/music/desafio-01.mp3"); 
+    SetMusicVolume(musicaFase, 1.2f);
+    PlayMusicStream(musicaFase);
+    audioAtivo = true;
 
     // == GEMINI LOAD
     sprGemini     = LoadTexture("src/sprites/os/gemini.png");
@@ -321,6 +329,8 @@ void Update_Desafio_01(void)
 {
     float dt = GetFrameTime();
     Vector2 mouse = GetMousePosition();
+
+    if (audioAtivo) UpdateMusicStream(musicaFase);
 
     // == GEMINI ICONE E ANIMAÇÂO
     float geminiX = 49, geminiY = 67, geminiScale = 0.1f;
@@ -903,4 +913,10 @@ void Unload_Desafio_01(void)
     UnloadTexture(exploTex);
     // == GEMINI unload
     UnloadTexture(sprGemini);
+
+    if (audioAtivo) {
+        StopMusicStream(musicaFase);
+        UnloadMusicStream(musicaFase);
+        audioAtivo = false;
+    }
 }

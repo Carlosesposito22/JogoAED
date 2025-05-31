@@ -74,6 +74,9 @@ static Texture2D folderSprite;
 static Texture2D ipadSprite;
 static Texture2D pergunta_img;
 
+static Music musicaFase;
+static bool  audioAtivo = false;
+
 static void DrawDialogPersonagem(int screenW, int screenH) 
 {
     int boxX = 60;
@@ -218,6 +221,11 @@ void Init_Desafio_04(void)
     if (!sprEnterButtonLoaded) { sprEnterButton = LoadTexture("src/sprites/enter_button.png"); sprEnterButtonLoaded = true; }
     if (!pergunta_img_loaded) { pergunta_img = LoadTexture("src/sprites/pergunta3.png"); pergunta_img_loaded = true; }
 
+    musicaFase = LoadMusicStream("src/music/desafio-04.mp3"); 
+    SetMusicVolume(musicaFase, 1.2f);
+    PlayMusicStream(musicaFase);
+    audioAtivo = true;
+
     AtualizaUbuntuBaseVars();
     strcpy(fala_exibida, FALA_INTRO);
     InitTypeWriter(&writer, fala_exibida, 27.5f);
@@ -243,6 +251,7 @@ void Init_Desafio_04(void)
 void Update_Desafio_04(void) 
 {
     float delta = GetFrameTime();
+    if (audioAtivo && !preFalaInicial) UpdateMusicStream(musicaFase);
 
     if (preFalaInicial) 
     {
@@ -554,4 +563,10 @@ void Unload_Desafio_04(void) {
     if (sprMamede3.id) UnloadTexture(sprMamede3);
     if (sprEnterButtonLoaded) { UnloadTexture(sprEnterButton); sprEnterButtonLoaded = false; }
     if (pergunta_img_loaded) { UnloadTexture(pergunta_img); pergunta_img_loaded = false; }
+    
+    if (audioAtivo) {
+        StopMusicStream(musicaFase);
+        UnloadMusicStream(musicaFase);
+        audioAtivo = false;
+    }
 }
