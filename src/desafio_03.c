@@ -370,7 +370,7 @@ void Draw_Desafio_03(void)
             };
             DrawRectangle(entregaX_final, entregaY + i, entregaW_final, 1, row);
         }
-        //DrawRectangleRoundedLines(entregaBtnFinal, 0.32f, 8, 2.0f, corVerdeBorder);  
+        DrawRectangleRoundedLines(entregaBtnFinal, 0.32f, 8, GREEN);  
         if (!hover) {
             DrawRectangleRounded((Rectangle){entregaX_final+6, entregaY+6, entregaW_final-12, entregaH*0.28f}, 0.34f, 6, (Color){255,255,255,31});
         }

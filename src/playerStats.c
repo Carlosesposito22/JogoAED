@@ -137,10 +137,10 @@ static float CalculatePlayerScore(PlayerStats *ps)
 
     notaGeral += ps->aiOverallScore * 0.5f;
 
-    if (ps->isPassed_D01) notaGeral += 15.0f;
+    if (ps->isPassed_D01) notaGeral += 10.0f;
     if (ps->isPassed_D02) notaGeral += 15.0f;
     if (ps->isPassed_D03) notaGeral += 10.0f;
-    if (ps->isPassed_D04) notaGeral += 10.0f;
+    if (ps->isPassed_D04) notaGeral += 15.0f;
 
     float bonus = 0.0;
 

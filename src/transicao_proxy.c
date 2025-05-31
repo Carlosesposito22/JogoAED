@@ -41,7 +41,6 @@ static float fadeAlphaFase1 = 2.0f;
 static const float FADEIN_DURATION = 2.0f;
 static bool fase1FadeInDone = false;
 static bool telefoneAtendido = false;
-static Sound somPersonagem;
 static TypeWriter personagemWriter;
 static bool personagemTypeStarted = false;
 static bool personagemAudioTocado   = false;
@@ -99,7 +98,6 @@ void Init_Transicao_Proxy(void)
     // ======================================
     
     somRadio = LoadSound("src/music/voz-grosa.mp3"); // nunca tocado aqui, só para não dar erro no UnloadSound
-    somPersonagem = LoadSound("");
     somChamadaAcabada = LoadSound("src/music/som_telefone_sinal_desligado_ou_ocupado_caio_audio.mp3");
     // ---- Dica ----
     steam_som  = LoadSound("src/music/steam-achievement.mp3");
@@ -110,10 +108,8 @@ void Init_Transicao_Proxy(void)
     portaModel.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = portaTexture;
     SetSoundVolume(somFase1, 1.0f);
     SetSoundVolume(somTelefone, 1.0f);
-    //SetSoundVolume(somRadio, 3.5f);
-    SetSoundVolume(somAudio1, 2.5f); // ajuste de volume se necessário
-    SetSoundVolume(somAudio2, 2.5f);
-    SetSoundVolume(somPersonagem, 1.0f);    
+    SetSoundVolume(somAudio1, 3.2f); // ajuste de volume se necessário
+    SetSoundVolume(somAudio2, 3.2f);
     SetMasterVolume(1.0f);
     SetSoundVolume(somChamadaAcabada, 2.0f);
     SetSoundVolume(steam_som, 1.0f);
@@ -275,7 +271,6 @@ void Update_Transicao_Proxy(void)
         timeAfterUnknown += delta;
         if (timeAfterUnknown >= 5.0f)
         {
-            PlaySound(somPersonagem);
             personagemAudioTocado = true;
             const char *falaP = "Acabei de encontrar o post-it, agora basta configurar tudo.";
             InitTypeWriter(&personagemWriter, falaP, 18.5f);
@@ -556,7 +551,6 @@ void Unload_Transicao_Proxy(void)
     UnloadSound(somAudio1);
     UnloadSound(somAudio2);
     //UnloadSound(somRadio); // só descarrega, nunca tocamos
-    UnloadSound(somPersonagem);
     UnloadSound(somChamadaAcabada);
     UnloadSound(steam_som); // --- DICA ---
     EnableCursor();

@@ -115,8 +115,7 @@ void DrawDica(float posX, float posY, const char *text)
     int padding = 15;
 
     DrawRectangleRounded((Rectangle){posX, posY, dicaWidth, dicaHeight}, 0.3f, 12, (Color){30, 30, 30, 200});
-    // VOLTAR DEPOIS
-    //DrawRectangleRoundedLines((Rectangle){posX, posY, dicaWidth, dicaHeight}, 0.3f, 12, (Color){255, 255, 255, 100});
+    DrawRectangleRoundedLines((Rectangle){posX, posY, dicaWidth, dicaHeight}, 0.3f, 12, (Color){255, 255, 255, 100});
 
     int iconPosX = posX + padding;
     int iconPosY = posY + dicaHeight / 2;

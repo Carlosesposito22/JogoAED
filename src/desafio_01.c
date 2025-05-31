@@ -6,13 +6,15 @@
 #define BALL_SIZE 28
 #define PADDLE_W 32
 #define PADDLE_H 120
-#define BALL_SPEED 390
-#define BALL_MAX_SPEED 620
+#define BALL_SPEED 620
+#define BALL_MAX_SPEED 760
 #define FADEOUT_DURACAO 0.8f
+#define ANTIVIRUS_SPEED_FACTOR 0.8f
+#define ANTIVIRUS_SPAWN_CHANCE 8
 #define TOPO_BLOCOS    48
 #define LIMITE_INFERIOR (GetScreenHeight() - 270)
-#define MAX_BOLAS 20
-#define MAX_ANTIVIRUS 16
+#define MAX_BOLAS 8
+#define MAX_ANTIVIRUS 4
 #define SC 0.8f
 #define BLOCOS_RIGHT_MARGIN 30
 #define BLOCOS_RIGHT_MARGIN_EXTRA 34
@@ -24,7 +26,7 @@
 #define PONG_AREA_H  ((int)(AREA_PONG_H * SC)+10)
 #define PONG_AREA_X  ((GetScreenWidth()  - PONG_AREA_W)/2+6)
 #define PONG_AREA_Y  ((GetScreenHeight() - PONG_AREA_H)/2-160)
-#define FALA_NORMAL_03 "Quebre todos os blocos vermelhos usando a bola azul!\nMova a barra com o mouse. Clique para lançar."
+#define FALA_NORMAL_03 "Quebre uma barreira de blocos vermelhos usando a bola e vença o PongWall!\n\nMova a barra com o mouse. Clique para lançar."
 #define FALA_ACERTO_03 "Escolha certeira! Hank deve ter anotado meu cuidado — estou um passo à frente na vaga."
 #define FALA_ERRO_03   "Putz… decisão errada! O sistema de monitoramento disparou e Hank vai notar esse deslize."
 #define FALA_JOAO_ACERTO "Ufa, rebati bem! Venha o próximo desafio!"
@@ -35,7 +37,7 @@
 #define FALA_MAMEDE_ERRO   "Ah, vacilei justo agora! Preciso compensar nos próximos testes ou perco a chance."
 #define EXPLO_FRAME_DUR 0.10f
 #define EXPLO_TOTAL_FRAMES 10
-#define FALA_INTRO_03 "Mostre habilidade no pong: destrua blocos vermelhos,fuja dos antivírus e impressione Hank!\nUse o mouse pra mover. Clique enter para jogar e em qualquer lugar da tela para enviar o virus"
+#define FALA_INTRO_03 "Mostre habilidade no pong: destrua blocos vermelhos, fuja dos antivírus e impressione Hank!"
 #define FASE3_CHRONO_MAX 180.0f
 
 static bool preFalaInicial = true;
@@ -110,7 +112,7 @@ static BlocoVermelho blocos[NUM_COLUNAS][MAX_LINHAS];
 static int linhas_ativas = 0;
 static int blocos_ativos = 0;
 static Bola bolas[MAX_BOLAS];
-static int num_bolas = 1;
+static int num_bolas = 2;
 static Paddle paddle;
 static bool pong_vitoria = false;
 static bool pong_derrota = false;
@@ -172,7 +174,27 @@ static bool  geminiHelpClicked = false;
 static float geminiAnimSpeed = 6.0f;
 static const char* gemini_help_msg_default = "Clique aqui caso precise de ajuda!";
 static const char* gemini_help_msg_ajuda =
-    "DICA: Mire nos blocos vermelhos e fuja dos antivírus/amarelos para não perder!";
+    "";
+
+static inline int CountActiveBolas(void) {
+    int c = 0; for (int i = 0; i < MAX_BOLAS;     ++i) if (bolas[i].ativa)       ++c;
+    return c;
+}
+static inline int CountActiveAntivirus(void) {
+    int c = 0; for (int i = 0; i < MAX_ANTIVIRUS; ++i) if (antiviruses[i].ativa) ++c;
+    return c;
+}
+
+static inline void ClampBallSpeed(Bola *b)
+{
+    float vmax = BALL_MAX_SPEED * SC;
+    float v = sqrtf(b->vel.x * b->vel.x + b->vel.y * b->vel.y);
+    if (v > vmax) {
+        float f = vmax / v;
+        b->vel.x *= f;
+        b->vel.y *= f;
+    }
+}
 
 static void AtualizaTamanhoGeminiBox(void)
 {
@@ -487,6 +509,10 @@ void Update_Desafio_01(void)
                 if (k != b && bolas[k].ativa) vivos++;
             if (vivos == 0) {
                 bolas[b].ativa = false;
+                if (b == num_bolas - 1) {
+                    while (num_bolas > 0 && !bolas[num_bolas - 1].ativa)
+                        --num_bolas;
+                }
                 pong_derrota = true;
                 const char* name = gSelectedCharacterName;
                 strcpy(fala_exibida, FalaPorResultado(name, false));
@@ -495,6 +521,10 @@ void Update_Desafio_01(void)
                 return;
             } else {
                 bolas[b].ativa = false;
+                if (b == num_bolas - 1) {
+                    while (num_bolas > 0 && !bolas[num_bolas - 1].ativa)
+                        --num_bolas;
+                }
                 continue;
             }
         }
@@ -529,7 +559,7 @@ void Update_Desafio_01(void)
                     float old_vx = bolas[b].vel.x, old_vy = bolas[b].vel.y;
                     Rectangle r = blk->rect;
                     bool colidiuPeloX = (bolas[b].pos.x+BALL_SIZE*SC-3 < r.x || bolas[b].pos.x > r.x+r.width-3);
-                    if (blk->amarelo) {
+                    if (blk->amarelo && CountActiveBolas() < MAX_BOLAS) {
                         int added = 0;
                         for (int n=0; n<MAX_BOLAS && num_bolas < MAX_BOLAS && added < 1; n++) {
                             if (!bolas[n].ativa) {
@@ -544,6 +574,7 @@ void Update_Desafio_01(void)
                                 float new_angle = base_angle + a;
                                 bolas[n].vel.x = -fabsf(BALL_SPEED * SC * cosf(new_angle));
                                 bolas[n].vel.y = BALL_SPEED * SC * sinf(new_angle);
+                                ClampBallSpeed(&bolas[n]);
                                 ++added;
                                 if (n >= num_bolas) num_bolas = n+1;
                             }
@@ -555,7 +586,8 @@ void Update_Desafio_01(void)
                     blk->explosionFrame = 0;
                     blk->ativa = false;
                     blocos_ativos--;
-                    if (GetRandomValue(1, 100) <= 25) {
+                    ClampBallSpeed(&bolas[b]);
+                    if (GetRandomValue(1, 100) <= ANTIVIRUS_SPAWN_CHANCE && CountActiveAntivirus() < MAX_ANTIVIRUS) {
                         for(int a=0; a<MAX_ANTIVIRUS; ++a) {
                             if (!antiviruses[a].ativa) {
                                 antiviruses[a].ativa = true;
@@ -565,7 +597,7 @@ void Update_Desafio_01(void)
                                 antiviruses[a].rect.y = antiviruses[a].pos.y;
                                 antiviruses[a].rect.width = BALL_SIZE*SC;
                                 antiviruses[a].rect.height= BALL_SIZE*SC;
-                                float boost = 1.8f;
+                                float boost = ANTIVIRUS_SPEED_FACTOR;
                                 float vx, vy;
                                 if (colidiuPeloX) {
                                     vx = old_vx * boost;
@@ -589,6 +621,7 @@ void Update_Desafio_01(void)
                     else
                         bolas[b].vel.y *= -1.0f;
                     bolas[b].angularSpeed += 130.0f;
+                    ClampBallSpeed(&bolas[b]);
                     if (bolas[b].angularSpeed > 360.0f) bolas[b].angularSpeed = 360.0f;
                     goto cond2;
                 }

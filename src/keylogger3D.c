@@ -80,7 +80,7 @@ void Init_Keylogger3D()
     portaModel.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = portaTexture;
     SetSoundVolume(somFase1, 1.0f);
     SetSoundVolume(somTelefone, 1.0f);
-    SetSoundVolume(somRadio, 3.5f);
+    SetSoundVolume(somRadio, 0.9f);
     SetSoundVolume(somPersonagem, 1.0f);
     SetMasterVolume(1.0f);
     SetSoundVolume(somChamadaAcabada, 2.0f);
