@@ -85,9 +85,13 @@ int main(void)
     SetMusicVolume(music, 0.9f);
     PlayMusicStream(music);
 
+    Sound musicShell = LoadSound("src/music/suspenseBox.mp3");
+    SetSoundVolume(musicShell, 1.0f);
+
     SelecionarPerguntasAleatorias();
     InitPlayerStats(&playerStats);
 
+    static bool shellLoop = false; 
     static int perguntaAtual = -1;
     static bool firewall_Initialized = false;
     static bool bruteforce_Initialized = false;
@@ -685,6 +689,8 @@ int main(void)
             if (!shellBox_Initialized)
             {
                 Init_ShellBox();
+                PlaySound(musicShell);
+                shellLoop = true; 
                 shellBox_Initialized = true;
             }
             Update_ShellBox();
@@ -700,6 +706,7 @@ int main(void)
         {
             if (!shell3D_02_Initialized)
             {
+                SetSoundVolume(musicShell, 0.5f);
                 Init_Shell3D_02();
                 shell3D_02_Initialized = true;
             }
@@ -723,6 +730,7 @@ int main(void)
                 Init_ShellUbuntu();
                 shellUbuntu_Initialized = true;
             }
+            if (shellLoop && !IsSoundPlaying(musicShell)) PlaySound(musicShell);  
             Update_ShellUbuntu();
             Draw_ShellUbuntu();
             if (Fase_ShellUbuntu_Concluida()) 
@@ -730,6 +738,8 @@ int main(void)
                 Unload_ShellUbuntu();
                 shellUbuntu_Initialized = false;
                 state = APP_FINAL_JOGO;
+                StopSound(musicShell);
+                UnloadSound(musicShell);
             }
         }
         else if (state == APP_FINAL_JOGO)

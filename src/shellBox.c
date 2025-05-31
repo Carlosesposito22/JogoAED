@@ -12,7 +12,6 @@ static Texture2D openCardboardBox;
 static Texture2D cdSprite;
 static Texture2D cardHank;
 static Texture2D sprEnterButton; // NOVO!
-static Sound suspenseSound;
 static Sound grabbingSound;
 static Sound surpriseSound;
 static Sound telefoneSound;
@@ -49,7 +48,7 @@ static float fadeOutBoxAlpha = 1.0f;
 static bool surprisePlayed = false;
 // TEXTOBOX ANIMADA
 static const char *typingText =
-    "Você deve esta se perguntando, oque tem nessa caixa, certo? Dentro tem um cd contendo um malware reverse shell.Para sua tarefa \nfinal, você tem que infectar nosso PC com esse malware para controlá-lo remotamente. Vamos ver se você consegue cumprir isso...";
+    "Você deve esta se perguntando, oque tem nessa caixa, certo? Dentro tem um cd contendo um malware reverse shell. Para sua tarefa \nfinal, você tem que infectar nosso PC com esse malware para controlá-lo remotamente. Vamos ver se você consegue cumprir isso...";
 static int typingIndex = 0;
 static float typingTimer = 0.0f;
 static int typingTextOffset = 0;
@@ -83,19 +82,16 @@ void Init_ShellBox(void)
     cdSprite = LoadTexture("src/sprites/cd.png");
     cardHank = LoadTexture("src/sprites/cardHank.png");
     sprEnterButton = LoadTexture("src/sprites/enter_button.png"); // Botão! (adicione sua imagem)
-    suspenseSound = LoadSound("src/music/suspenseBox.mp3");
     grabbingSound = LoadSound("src/music/grabbing.mp3");
     surpriseSound = LoadSound("src/music/surprise.mp3");
     telefoneSound = LoadSound("src/music/telefone.mp3");
     shellPhoneCallSound = LoadSound("src/music/shellPhoneCall.wav");
     sinalDesligadoSound = LoadSound("src/music/som_telefone_sinal_desligado_ou_ocupado_caio_audio.mp3");
-    SetSoundVolume(suspenseSound, 0.5f);
     SetSoundVolume(telefoneSound, 1.0f);
     SetSoundVolume(shellPhoneCallSound, 1.0f);
     SetSoundVolume(sinalDesligadoSound, 1.0f);
     SetSoundVolume(surpriseSound, 1.0f);
     PlaySound(surpriseSound);
-    PlaySound(suspenseSound);
     unknownPosX = GetScreenWidth();
     unknownPosY = 100;
     cardboardPosX = -cardboardBox.width;
@@ -511,8 +507,6 @@ bool Fase_ShellBox_Concluida(void)
 }
 void Unload_ShellBox(void)
 {
-    StopSound(suspenseSound);
-    UnloadSound(suspenseSound);
     UnloadSound(grabbingSound);
     StopSound(surpriseSound);
     UnloadSound(surpriseSound);
@@ -526,5 +520,5 @@ void Unload_ShellBox(void)
     UnloadTexture(openCardboardBox);
     UnloadTexture(cdSprite);
     UnloadTexture(cardHank);
-    UnloadTexture(sprEnterButton); // Não esqueça!
+    UnloadTexture(sprEnterButton);
 }

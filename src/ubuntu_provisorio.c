@@ -190,7 +190,7 @@ void Update_ShellUbuntu(void)
             }
         }
     }
-    if (IsKeyPressed(KEY_A))
+    if (IsKeyPressed(KEY_KP_SUBTRACT))
     {
         fase_concluida = true;
     }

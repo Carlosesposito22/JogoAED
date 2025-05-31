@@ -128,7 +128,7 @@ void Update_BruteForce(void)
 {
     float dt = GetFrameTime();
 
-    if (IsKeyPressed(KEY_A))
+    if (IsKeyPressed(KEY_KP_SUBTRACT))
     {
         fase_concluida = true;
     }
