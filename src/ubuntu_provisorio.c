@@ -13,7 +13,7 @@ static Texture2D terminalIcon;
 static Texture2D geminiIcon;
 static Texture2D folderIcon;
 static Font geminiFont;
-static Sound bootSound; // <-- ADICIONADO: som do ubuntu
+static Sound bootSound;
 static float fadeTimer = 0.0f;
 static float fadeDuration = 3.0f;
 static float fadePause = 1.0f;
@@ -41,6 +41,7 @@ static float esperaPreta = 2.0f;
 static float tempoMensagemFinalDelay = 2.0f;
 static bool fase_concluida = false;
 static Rectangle folderBounds;
+static Texture2D alerta;
 
 void Init_ShellUbuntu(void)
 {
@@ -50,7 +51,8 @@ void Init_ShellUbuntu(void)
     geminiIcon = LoadTexture("src/sprites/os/gemini.png");
     folderIcon = LoadTexture("src/sprites/os/folder.png");
     geminiFont = LoadFont("src/fonts/GoogleSansMono.ttf");
-    bootSound = LoadSound("src/music/boot.mp3"); // <-- ADICIONADO
+    bootSound = LoadSound("src/music/boot.mp3");
+    alerta = LoadTexture("src/sprites/alerta.png");
     fadeTimer = 0.0f;
     showBackground = false;
     bootSoundPlayed = false; // <-- voltar ao estado de falso
@@ -84,12 +86,10 @@ void Update_ShellUbuntu(void)
     if (!showBackground && fadeTimer >= (fadeDuration + fadePause))
         showBackground = true;
 
-    // --- TOCA O SOM DO UBUNTU QUANDO A TELA APARECE ---
     if (showBackground && !bootSoundPlayed) {
         PlaySound(bootSound);
         bootSoundPlayed = true;
     }
-    //---------------------------------------------------
 
     if (bootSoundPlayed && !geminiAnimStarted)
     {
@@ -190,13 +190,10 @@ void Update_ShellUbuntu(void)
             }
         }
     }
-    if (IsKeyPressed(KEY_KP_SUBTRACT))
+    if (IsKeyPressed(KEY_TAB))
     {
         fase_concluida = true;
     }
-    // (fase_concluida = true;)
-    // isso define que a fase acabou, quando tiver essa lógica
-    // coloque isso, ao inves de trocar o state, Carlos o gay agradeçe!
 }
 
 void Draw_ShellUbuntu(void)
@@ -264,6 +261,29 @@ void Draw_ShellUbuntu(void)
             alpha = 1.0f; // Garante que o alpha não passe de 1.0
         DrawRectangle(0, 0, GetScreenWidth(), GetScreenHeight(), (Color){0, 0, 0, (unsigned char)(alpha * 255)});
     }
+
+    // MENSSAGEM DE SHELL NAO FINALIZADO
+    int avisoY = 30;
+    int avisoFont = 20;
+    float alertaScale = 0.5f;
+    int alertaW = alerta.width * alertaScale;
+    int alertaH = alerta.height * alertaScale;
+    const char *msg = "A fase do Shell Reverso ainda apresenta bugs,\ncaso queira pular a fase, aperte a tecla [TAB]";
+    int textoW = MeasureText(msg, avisoFont);
+    int textoPadding = 20;
+    int caixaW = textoW + textoPadding * 2;
+    int caixaH = alertaH + 110;
+    int caixaX = GetScreenWidth() - caixaW - 20;
+    int caixaY = avisoY;
+    DrawRectangleRounded((Rectangle){ caixaX, caixaY, caixaW, caixaH }, 0.3f, 12, WHITE);
+    int imgX = caixaX + (caixaW - alertaW) / 2;
+    int imgY = caixaY + 10;
+    DrawTextureEx(alerta, (Vector2){ imgX, imgY }, 0.0f, alertaScale, WHITE);
+    int textoX = caixaX + (caixaW - textoW) / 2;
+    int textoY = imgY + alertaH + 5;
+    DrawText(msg, textoX, textoY, avisoFont, RED);
+    // FIM DA MENSSAGEM
+
     EndDrawing();
 }
 
@@ -280,5 +300,6 @@ void Unload_ShellUbuntu(void)
     UnloadTexture(geminiIcon);
     UnloadTexture(folderIcon);
     UnloadFont(geminiFont);
-    UnloadSound(bootSound); // <-- LIBERA O SOM TAMBÉM
+    UnloadSound(bootSound);
+    UnloadTexture(alerta);
 }

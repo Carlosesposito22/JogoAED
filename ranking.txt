@@ -7,3 +7,12 @@ Jp, Dante, 83.2, 1
 Julia, Alice, 97.3, 1 
 Emanuel, Levi, 43.48, 0
 Vinicius, Dante, 53.42, 0
+Carlos Eduardo Esposito, Dante, 0.00, 0
+Carlos Eduardo Esposito, Dante, 0.00, 0
+Carlos Eduardo Esposito, Dante, 0.00, 0
+Carlos Eduardo Esposito, Dante, 0.00, 0
+Carlos Eduardo Esposito, Dante, 0.00, 0
+Carlos Eduardo Esposito, Dante, 0.00, 0
+Carlos Eduardo Esposito, Dante, 0.00, 0
+Carlos Eduardo Esposito, Dante, 0.00, 0
+Carlos Eduardo Esposito, Dante, 0.00, 0
