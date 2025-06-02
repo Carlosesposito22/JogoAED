@@ -1,12 +1,4 @@
-<p align="center">
-  <img src="https://github.com/Carlosesposito22/JogoAED/blob/main/src/sprites/logo_jogo.png?raw=true" alt="Logo do Jogo" width="800">
-</p>
-
-
 https://github.com/user-attachments/assets/b0eaf4c6-e71d-4837-95b8-e3179a23b9eb
-
-
-Este projeto é um jogo desenvolvido em C utilizando a biblioteca [Raylib](https://www.raylib.com/) e integração com a [API Gemini](https://ai.google.dev/). O jogo simula um processo seletivo em um braço do **FBI** voltado para cibersegurança chamado **Cybertech**, onde o jogador precisa provar suas habilidades técnicas e éticas para conquistar uma vaga.
 
 ---
 
@@ -23,7 +15,17 @@ O jogador assume o papel de um candidato tentando ingressar na **Cybertech**, um
 
 ---
 
-## ⚙️ Requisitos
+## 🪟 Instalação em Windows
+
+1. Baixe o instalador clicando no link: 👉 [**Instalador para Windows**](https://github.com/Carlosesposito22/ThoroughTheFirewall/releases/download/Game/Instalador.Jogo.TTF.exe)
+
+2. Abra o instalador e siga as instruções para concluir a instalação.
+
+3. Após a instalação, execute o jogo diretamente do atalho criado na área de trabalho ou no menu Iniciar.
+
+---
+
+## ⚙️ Requisitos para clonar o projeto
 
 - **Windows**
 - [Raylib](https://www.raylib.com/) baixada manualmente
@@ -66,5 +68,4 @@ make run
 
 O executável do jogo deve estar no mesmo diretório que o arquivo **libcurl-x64.dll** para funcionar corretamente.  
 
-- Para garantir isso, coloque o executável na pasta **/bin**.  
-- Isso já é feito automaticamente ao utilizar o comando **make run**.
+- Mas isso já é feito automaticamente ao utilizar o comando **make run**.
